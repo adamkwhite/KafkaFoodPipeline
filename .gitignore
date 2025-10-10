@@ -1,0 +1,15 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.env
+# Jupyter Notebooks
+.ipynb_checkpoints/
+# Model artifacts
+*.ckpt
+*.pth
+*.h5
+# Data
+data/

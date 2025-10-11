@@ -1,0 +1,226 @@
+# Kafka Food Processing Pipeline - Local Development Environment
+# This sets up the complete infrastructure for learning Kafka
+
+version: '3.8'
+
+services:
+  # ==============================================================================
+  # ZOOKEEPER - Coordination Service for Kafka
+  # ==============================================================================
+  #
+  # WHAT IS ZOOKEEPER?
+  # - Distributed coordination service (similar to etcd or Consul)
+  # - Manages Kafka cluster metadata: brokers, topics, partitions, replicas
+  # - Elects controller broker (coordinates partition leadership)
+  # - Tracks which brokers are alive (via heartbeats)
+  #
+  # BLOCKCHAIN ANALOGY:
+  # - Like a distributed ledger for cluster state (but not the message data)
+  # - Ensures consensus on cluster configuration across all brokers
+  # - Think of it as coordination layer for the Kafka network
+  #
+  # FUTURE NOTE:
+  # - Kafka is moving to "KRaft" mode (Kafka Raft) to remove Zookeeper dependency
+  # - KRaft uses Raft consensus protocol (similar to blockchain consensus)
+  # - For learning, Zookeeper is still standard and easier to understand
+  #
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: kafka-zookeeper
+    ports:
+      - "2181:2181"  # Client port - Kafka brokers connect here
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000  # Basic time unit in milliseconds (heartbeat interval)
+    networks:
+      - kafka-network
+
+  # ==============================================================================
+  # KAFKA BROKER - Message Streaming Platform
+  # ==============================================================================
+  #
+  # WHAT IS KAFKA?
+  # - Distributed commit log (append-only, ordered, persistent)
+  # - Messages organized into "topics" (like database tables)
+  # - Topics split into "partitions" for parallelism
+  # - Messages within partition are totally ordered (sequence guaranteed)
+  #
+  # KEY KAFKA CONCEPTS:
+  #
+  # 1. BROKER:
+  #    - A Kafka server that stores and serves messages
+  #    - In production: multiple brokers for redundancy
+  #    - This setup: single broker for learning (simpler)
+  #
+  # 2. TOPICS:
+  #    - Named message streams (e.g., "food-orders")
+  #    - Like a database table, but append-only and distributed
+  #
+  # 3. PARTITIONS:
+  #    - Topics split into partitions for parallel processing
+  #    - Each partition is an ordered, immutable sequence of messages
+  #    - Partition assignment determined by message key (we'll use customer_id)
+  #    - Our "food-orders" topic will have 3 partitions
+  #
+  # 4. OFFSETS:
+  #    - Position in partition (like array index: 0, 1, 2, ...)
+  #    - Consumers track their position via offset
+  #    - Committed offset = "I've successfully processed up to here"
+  #
+  # BLOCKCHAIN ANALOGY:
+  # - Partition = like a blockchain (append-only, ordered log)
+  # - Offset = like block height
+  # - Replication = like multiple nodes maintaining the same chain
+  #
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: kafka-broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"   # External port (access from host machine)
+      - "9101:9101"   # JMX port for monitoring (optional, advanced)
+    environment:
+      # === BROKER IDENTIFICATION ===
+      KAFKA_BROKER_ID: 1  # Unique ID for this broker in cluster
+
+      # === ZOOKEEPER CONNECTION ===
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+
+      # === LISTENER CONFIGURATION ===
+      # Kafka "listeners" control how clients connect to broker
+      # This is often confusing for beginners, so detailed explanation:
+      #
+      # PLAINTEXT: No encryption (fine for local dev, NOT for production)
+      #
+      # Two listeners defined:
+      # 1. PLAINTEXT://kafka:29092 - Used by services INSIDE Docker network
+      #    - Other containers (producer, consumer) use hostname "kafka"
+      # 2. PLAINTEXT_HOST://localhost:9092 - Used from HOST machine
+      #    - Your laptop can access Kafka at localhost:9092
+      #    - Useful for local testing with kafka-console-producer, etc.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # === TOPIC DEFAULTS ===
+      # Auto-create topics when producer writes to non-existent topic
+      # We'll create our topic explicitly (better practice), but this allows flexibility
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+      # Default replication factor for auto-created topics
+      # 1 = no replication (only one broker anyway in our setup)
+      # Production: 3+ for fault tolerance
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+      # === CONSUMER GROUP COORDINATION ===
+      # Replication factor for __consumer_offsets topic (stores committed offsets)
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # === MONITORING (JMX) ===
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+
+      # === RETENTION SETTINGS ===
+      # How long to keep messages (default: 7 days)
+      # Kafka is persistent - messages aren't deleted after consumption!
+      # This is different from traditional message queues
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 days (7 * 24 hours)
+
+      # Segment size - log files roll over at this size
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824  # 1GB
+
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ==============================================================================
+  # POSTGRESQL - Order Storage Database
+  # ==============================================================================
+  #
+  # WHY BOTH KAFKA AND DATABASE?
+  # - Kafka: Event stream (what happened, when, in order)
+  # - Database: Current state (what's true right now)
+  # - Pattern: Kafka as source of truth, DB as materialized view
+  #
+  # EXAMPLE:
+  # - Kafka log: "Order created", "Order paid", "Order shipped", "Order delivered"
+  # - Database: order.status = "delivered" (current state)
+  # - Can rebuild database by replaying Kafka log (event sourcing)
+  #
+  postgres:
+    image: postgres:15
+    hostname: postgres
+    container_name: kafka-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: food_orders
+      POSTGRES_USER: kafka_user
+      POSTGRES_PASSWORD: kafka_password_local
+    volumes:
+      # Mount initialization script (will create tables on first startup)
+      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Persist data across container restarts
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kafka_user -d food_orders"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ==============================================================================
+# NETWORKS
+# ==============================================================================
+# Docker network for service communication
+# Services on same network can resolve each other by hostname (e.g., "kafka", "postgres")
+networks:
+  kafka-network:
+    driver: bridge
+
+# ==============================================================================
+# VOLUMES
+# ==============================================================================
+# Persistent storage for database (survives container restarts)
+volumes:
+  postgres-data:
+
+# ==============================================================================
+# USAGE
+# ==============================================================================
+#
+# Start all services:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f kafka        # Kafka broker logs
+#   docker-compose logs -f zookeeper    # Zookeeper logs
+#   docker-compose logs -f postgres     # PostgreSQL logs
+#
+# Stop all services:
+#   docker-compose down
+#
+# Stop and remove volumes (fresh start):
+#   docker-compose down -v
+#
+# Check service health:
+#   docker-compose ps
+#
+# Access Kafka from host machine:
+#   kafka-console-producer --bootstrap-server localhost:9092 --topic food-orders
+#   kafka-console-consumer --bootstrap-server localhost:9092 --topic food-orders --from-beginning
+#
+# Access PostgreSQL:
+#   docker exec -it kafka-postgres psql -U kafka_user -d food_orders
+#
+# ==============================================================================

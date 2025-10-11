@@ -5,6 +5,9 @@ Consumer-specific configuration for Kafka consumer and PostgreSQL database.
 Loads settings from environment variables with Pydantic validation.
 """
 
+import socket
+import uuid
+
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -119,11 +122,29 @@ class ConsumerConfig(BaseSettings):
         extra = "ignore"
 
     def get_kafka_config(self) -> dict:
-        """Get Kafka consumer configuration dictionary."""
+        """
+        Get Kafka consumer configuration dictionary.
+
+        Generates a unique client ID by appending hostname and UUID suffix.
+        This enables horizontal scaling with multiple consumer instances.
+
+        HORIZONTAL SCALING:
+        - Multiple consumers with same group.id share partitions
+        - Each consumer needs unique client.id for partition assignment
+        - Format: {base_client_id}-{hostname}-{uuid}
+        - Example: order-consumer-docker-abc123-a1b2c3d4
+        """
+        # Generate unique client ID for this consumer instance
+        # This allows multiple consumers to join the same consumer group
+        # and get assigned different partitions
+        hostname = socket.gethostname()
+        unique_suffix = str(uuid.uuid4())[:8]  # Short UUID suffix
+        unique_client_id = f"{self.consumer_client_id}-{hostname}-{unique_suffix}"
+
         return {
             "bootstrap.servers": self.kafka_bootstrap_servers,
             "group.id": self.consumer_group_id,
-            "client.id": self.consumer_client_id,
+            "client.id": unique_client_id,
             "auto.offset.reset": self.consumer_auto_offset_reset,
             "enable.auto.commit": self.enable_auto_commit,
         }

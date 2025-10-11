@@ -1,0 +1,37 @@
+# Kafka Food Processing Pipeline - Development Dependencies
+
+# Include all production dependencies
+-r requirements.txt
+
+# === TESTING FRAMEWORK ===
+# pytest: Python testing framework
+# - More powerful than unittest
+# - Fixtures, parametrization, plugins
+pytest>=7.4.0
+
+# pytest-cov: Code coverage plugin for pytest
+# - Measures test coverage percentage
+# - Identifies untested code paths
+pytest-cov>=4.1.0
+
+# === INTEGRATION TESTING ===
+# testcontainers: Spin up Docker containers for integration tests
+# - Provides real Kafka and PostgreSQL instances for testing
+# - Automatically starts/stops containers during tests
+# - Critical for testing Kafka interactions without mocking
+testcontainers>=3.7.0
+
+# === CODE QUALITY ===
+# black: Opinionated Python code formatter
+# - Ensures consistent code style
+black>=23.0.0
+
+# ruff: Fast Python linter
+# - Replaces flake8, isort, pylint
+# - Catches bugs and style issues
+ruff>=0.1.0
+
+# mypy: Static type checker for Python
+# - Catches type errors before runtime
+# - Works with Pydantic models
+mypy>=1.7.0

@@ -1,0 +1,31 @@
+# Kafka Food Processing Pipeline - Production Dependencies
+
+# === KAFKA CLIENT ===
+# confluent-kafka-python: Production-grade Python client for Apache Kafka
+# - Built on librdkafka (high-performance C library)
+# - Supports producers, consumers, and admin operations
+# - More robust than kafka-python for production workloads
+confluent-kafka>=2.3.0
+
+# === DATABASE ===
+# SQLAlchemy: Python SQL toolkit and ORM
+# - Provides database abstraction layer
+# - Handles connection pooling, transactions
+sqlalchemy>=2.0.0
+
+# psycopg2-binary: PostgreSQL adapter for Python
+# - Connects Python to PostgreSQL database
+# - Binary version includes compiled C dependencies (easier install)
+psycopg2-binary>=2.9.0
+
+# === DATA VALIDATION ===
+# Pydantic: Data validation using Python type annotations
+# - Validates order structure before sending to Kafka
+# - Ensures data quality and catches errors early
+pydantic>=2.0.0
+
+# === CONFIGURATION ===
+# python-dotenv: Load environment variables from .env file
+# - Keeps secrets out of code
+# - Different configs for local/dev/production
+python-dotenv>=1.0.0

@@ -247,6 +247,96 @@ services:
     # 2. Ensure Kafka and PostgreSQL are running
     # 3. Run from host: python -m src.producer.main
 
+  # ==============================================================================
+  # ORDER CONSUMER - Kafka Message Consumer
+  # ==============================================================================
+  #
+  # WHAT IS THE CONSUMER?
+  # - Consumes orders from Kafka 'food-orders' topic
+  # - Persists orders to PostgreSQL database
+  # - Implements idempotency (duplicate detection via order_id PRIMARY KEY)
+  # - Provides at-least-once delivery guarantees
+  # - Demonstrates consumer best practices (manual offset commit, retry logic)
+  #
+  # CONSUMER RESPONSIBILITIES:
+  # - Subscribe to 'food-orders' topic
+  # - Poll for messages continuously
+  # - Deserialize and validate JSON messages
+  # - Save orders to PostgreSQL (with duplicate detection)
+  # - Commit offsets after successful database write
+  # - Handle errors with retry logic and logging
+  # - Graceful shutdown on SIGTERM/SIGINT
+  #
+  # CONSUMER GROUP:
+  # - Group ID: 'order-processors'
+  # - Multiple consumers → partition assignment (horizontal scaling)
+  # - 3 partitions, 1 consumer: Consumer gets all 3 partitions
+  # - 3 partitions, 3 consumers: Each gets 1 partition (optimal)
+  # - Scale by running: docker-compose up -d --scale order-consumer=3
+  #
+  # AT-LEAST-ONCE DELIVERY:
+  # - Consumer commits offset AFTER successful database write
+  # - If crash before commit → message redelivered
+  # - Idempotency via order_id PRIMARY KEY prevents duplicates
+  #
+  # CONFIGURATION:
+  # - CONSUMER_GROUP_ID: Consumer group identifier
+  # - CONSUMER_AUTO_OFFSET_RESET: earliest (process all) or latest (process new only)
+  # - MAX_RETRIES: Retry attempts for transient database errors
+  # - RETRY_BACKOFF_MS: Backoff time between retries (exponential)
+  #
+  # NOTE: This service is optional for learning. You can:
+  # 1. Run it in Docker: Automatic continuous consumption
+  # 2. Run manually: python -m src.consumer.main (more control)
+  # 3. Disable it: Comment out this service (use manual consumer)
+  #
+  order-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    container_name: kafka-order-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      # === KAFKA CONNECTION ===
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092  # Internal Docker network address
+      KAFKA_TOPIC_ORDERS: food-orders
+
+      # === CONSUMER SETTINGS ===
+      CONSUMER_GROUP_ID: order-processors
+      CONSUMER_CLIENT_ID: order-consumer-docker
+      CONSUMER_AUTO_OFFSET_RESET: earliest  # Process all messages (earliest) or only new ones (latest)
+      ENABLE_AUTO_COMMIT: "false"           # Manual offset commit (at-least-once delivery)
+
+      # === DATABASE CONNECTION ===
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: food_orders
+      POSTGRES_USER: kafka_user
+      POSTGRES_PASSWORD: kafka_password_local
+      DB_POOL_SIZE: 5                       # SQLAlchemy connection pool size
+
+      # === PROCESSING SETTINGS ===
+      MAX_RETRIES: 3                        # Retry attempts for transient errors
+      RETRY_BACKOFF_MS: 1000                # Initial backoff time (exponential)
+
+      # === LOGGING ===
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+    networks:
+      - kafka-network
+    # Restart policy: restart if crashes
+    # Options: no, always, on-failure, unless-stopped
+    restart: unless-stopped
+
+    # NOTE: To run consumer manually instead of in Docker:
+    # 1. Comment out this entire service
+    # 2. Ensure Kafka and PostgreSQL are running
+    # 3. Run from host: python -m src.consumer.main
+
 # ==============================================================================
 # NETWORKS
 # ==============================================================================
@@ -267,7 +357,7 @@ volumes:
 # USAGE
 # ==============================================================================
 #
-# Start all services (infrastructure + producer):
+# Start all services (infrastructure + producer + consumer):
 #   docker-compose up -d
 #
 # Start only infrastructure (Kafka, Zookeeper, PostgreSQL):
@@ -276,11 +366,21 @@ volumes:
 # Build and start producer:
 #   docker-compose up -d --build order-producer
 #
+# Build and start consumer:
+#   docker-compose up -d --build order-consumer
+#
+# Start full pipeline (rebuild if needed):
+#   docker-compose up -d --build
+#
 # View logs:
 #   docker-compose logs -f kafka              # Kafka broker logs
 #   docker-compose logs -f zookeeper          # Zookeeper logs
 #   docker-compose logs -f postgres           # PostgreSQL logs
 #   docker-compose logs -f order-producer     # Producer logs (see orders being published)
+#   docker-compose logs -f order-consumer     # Consumer logs (see orders being processed)
+#
+# View logs from multiple services:
+#   docker-compose logs -f order-producer order-consumer  # See full pipeline in action
 #
 # Stop all services:
 #   docker-compose down
@@ -295,10 +395,18 @@ volumes:
 #   docker-compose stop order-producer
 #   docker-compose up -d order-producer -e PRODUCER_RATE=50
 #
+# Scale consumers horizontally (3 consumers sharing partitions):
+#   docker-compose up -d --scale order-consumer=3
+#
 # Run producer manually (instead of Docker):
 #   # 1. Comment out order-producer service in this file
 #   # 2. Start infrastructure only: docker-compose up -d zookeeper kafka postgres
 #   # 3. Run from host: python -m src.producer.main --rate 10 --duration 60
+#
+# Run consumer manually (instead of Docker):
+#   # 1. Comment out order-consumer service in this file
+#   # 2. Start infrastructure only: docker-compose up -d zookeeper kafka postgres
+#   # 3. Run from host: python -m src.consumer.main --log-level INFO
 #
 # Access Kafka from host machine:
 #   # Console producer (manual message entry):
@@ -318,9 +426,33 @@ volumes:
 #   SELECT COUNT(*) FROM orders;                                    # Total orders
 #   SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id;  # Orders per customer
 #   SELECT * FROM orders ORDER BY created_at DESC LIMIT 10;         # Latest 10 orders
+#   SELECT status, COUNT(*) FROM orders GROUP BY status;            # Orders by status
+#
+#   # Check for duplicates (should be none with idempotency):
+#   SELECT order_id, COUNT(*) FROM orders GROUP BY order_id HAVING COUNT(*) > 1;
+#
+#   # Consumer lag analysis:
+#   SELECT
+#     order_id,
+#     customer_id,
+#     created_at,
+#     processed_at,
+#     EXTRACT(EPOCH FROM (processed_at - created_at)) * 1000 AS latency_ms
+#   FROM orders
+#   ORDER BY created_at DESC
+#   LIMIT 10;
 #
 # Debug producer:
 #   docker exec -it kafka-order-producer /bin/bash
 #   # Inside container: python -m src.producer.main --log-level DEBUG
+#
+# Debug consumer:
+#   docker exec -it kafka-order-consumer /bin/bash
+#   # Inside container: python -m src.consumer.main --log-level DEBUG
+#
+# Monitor consumer group:
+#   docker exec kafka-broker kafka-consumer-groups --bootstrap-server localhost:9092 \
+#     --group order-processors --describe
+#   # Shows: lag, current offset, partition assignment
 #
 # ==============================================================================

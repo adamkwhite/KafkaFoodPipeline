@@ -1,0 +1,157 @@
+# ==============================================================================
+# Dockerfile for Kafka Order Consumer Service
+# ==============================================================================
+#
+# MULTI-STAGE BUILD STRATEGY:
+# - Stage 1 (builder): Install all dependencies including build tools
+# - Stage 2 (runtime): Copy only necessary files, minimal image
+#
+# BENEFITS:
+# - Smaller final image (runtime only, no build tools)
+# - Faster deployment (less data to transfer)
+# - Security: Minimal attack surface
+# - Layer caching: Faster rebuilds
+#
+# IMAGE SIZES:
+# - Single-stage: ~900MB (includes gcc, build-essential, etc.)
+# - Multi-stage: ~200MB (runtime only)
+#
+# BUILD COMMAND:
+#   docker build -f Dockerfile.consumer -t order-consumer:latest .
+#
+# RUN COMMAND:
+#   docker run --env-file .env --network kafka-network order-consumer:latest
+#
+# ==============================================================================
+
+# ==============================================================================
+# STAGE 1: BUILDER
+# ==============================================================================
+# Install all dependencies including build tools
+# This stage will be discarded in final image
+
+FROM python:3.11-slim as builder
+
+# Set working directory
+WORKDIR /build
+
+# Install system dependencies needed for building Python packages
+# - gcc: C compiler (needed for confluent-kafka, psycopg2)
+# - g++: C++ compiler (needed for some dependencies)
+# - librdkafka-dev: Kafka C library (required by confluent-kafka)
+# - libpq-dev: PostgreSQL client library (required by psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    librdkafka-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+# - --no-cache-dir: Don't cache downloaded packages (saves space)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ==============================================================================
+# STAGE 2: RUNTIME
+# ==============================================================================
+# Minimal runtime image with only necessary files
+
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies only (no build tools)
+# - librdkafka1: Kafka C library runtime (required by confluent-kafka)
+# - libpq5: PostgreSQL client library runtime (required by psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    librdkafka1 \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python dependencies from builder stage
+# This includes all pip-installed packages without build tools
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application source code
+# Only copy necessary directories (src/, not tests/, docs/, etc.)
+COPY src/ ./src/
+COPY README.md ./
+COPY CLAUDE.md ./
+
+# Create non-root user for security
+# - Running as root is security risk
+# - Create user 'consumer' with UID 1000
+# - Switch to non-root user
+RUN useradd -m -u 1000 consumer && \
+    chown -R consumer:consumer /app
+
+USER consumer
+
+# Environment variables
+# These can be overridden by docker-compose or docker run --env-file
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LOG_LEVEL=INFO \
+    LOG_FORMAT=json
+
+# Health check
+# - Verify consumer can connect to database
+# - Runs every 30 seconds
+# - Timeout after 5 seconds
+# - 3 retries before marking unhealthy
+# Note: This requires psycopg2 which is already installed
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "from src.consumer.database import init_database; from src.consumer.config import load_config; init_database(load_config()).check_health()" || exit 1
+
+# Run consumer service
+# - python -m: Run module as script
+# - src.consumer.main: Entry point
+# - CMD can be overridden in docker-compose or docker run
+CMD ["python", "-m", "src.consumer.main"]
+
+# ==============================================================================
+# DOCKER LABELS
+# ==============================================================================
+# Metadata for the image
+
+LABEL maintainer="Kafka Food Pipeline <noreply@example.com>"
+LABEL description="Kafka order consumer service for food ordering pipeline"
+LABEL version="3.0"
+
+# ==============================================================================
+# USAGE EXAMPLES
+# ==============================================================================
+#
+# Build image:
+#   docker build -f Dockerfile.consumer -t order-consumer:latest .
+#
+# Run standalone (with environment variables):
+#   docker run --rm \
+#     -e KAFKA_BOOTSTRAP_SERVERS=kafka:29092 \
+#     -e POSTGRES_HOST=postgres \
+#     -e POSTGRES_PASSWORD=postgres \
+#     --network kafka-network \
+#     order-consumer:latest
+#
+# Run with env file:
+#   docker run --rm --env-file .env --network kafka-network order-consumer:latest
+#
+# Run with custom log level:
+#   docker run --rm --env-file .env --network kafka-network \
+#     order-consumer:latest python -m src.consumer.main --log-level DEBUG
+#
+# View logs:
+#   docker logs -f <container-id>
+#
+# Execute shell in running container:
+#   docker exec -it <container-id> /bin/bash
+#
+# Check health:
+#   docker inspect --format='{{.State.Health.Status}}' <container-id>
+#
+# ==============================================================================

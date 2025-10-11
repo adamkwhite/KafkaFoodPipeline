@@ -34,16 +34,14 @@ LEARNING OBJECTIVES:
 - Monitor producer metrics (throughput, latency, errors)
 """
 
+import argparse
+import signal
 import sys
 import time
-import signal
-import argparse
-from typing import Optional
-from datetime import datetime
 
-from src.producer.config import load_config, ProducerConfig, validate_kafka_connection
-from src.producer.producer import OrderProducer
+from src.producer.config import ProducerConfig, load_config, validate_kafka_connection
 from src.producer.mock_data import MockDataGenerator
+from src.producer.producer import OrderProducer
 from src.shared.logger import setup_logger
 
 # ==============================================================================
@@ -52,6 +50,7 @@ from src.shared.logger import setup_logger
 # Used for graceful shutdown on Ctrl+C (SIGINT) or SIGTERM
 
 shutdown_requested = False
+
 
 def signal_handler(signum, frame):
     """
@@ -80,6 +79,7 @@ def signal_handler(signum, frame):
 # MAIN PRODUCER FUNCTION
 # ==============================================================================
 
+
 def run_producer(config: ProducerConfig) -> int:
     """
     Run the order producer service.
@@ -104,14 +104,14 @@ def run_producer(config: ProducerConfig) -> int:
     - Check shutdown flag
     - Repeat until duration or shutdown
     """
-    global shutdown_requested
+    global shutdown_requested  # noqa: F824
 
     # Set up logger
     logger = setup_logger(
         name=__name__,
         service_name="order-producer",
         log_level=config.log_level,
-        log_format=config.log_format
+        log_format=config.log_format,
     )
 
     logger.info(
@@ -122,8 +122,8 @@ def run_producer(config: ProducerConfig) -> int:
             "rate": config.producer_rate,
             "duration": config.producer_duration if config.producer_duration > 0 else "infinite",
             "compression": config.producer_compression,
-            "idempotence": config.enable_idempotence
-        }
+            "idempotence": config.enable_idempotence,
+        },
     )
 
     # Validate Kafka connection before starting
@@ -131,7 +131,7 @@ def run_producer(config: ProducerConfig) -> int:
     if not validate_kafka_connection(config):
         logger.error(
             "Cannot connect to Kafka brokers",
-            extra={"bootstrap_servers": config.kafka_bootstrap_servers}
+            extra={"bootstrap_servers": config.kafka_bootstrap_servers},
         )
         return 1
 
@@ -144,8 +144,8 @@ def run_producer(config: ProducerConfig) -> int:
             "seed": config.mock_seed,
             "num_customers": 100,
             "num_menu_items": 20,
-            "reproducible": config.mock_seed > 0
-        }
+            "reproducible": config.mock_seed > 0,
+        },
     )
     generator = MockDataGenerator(seed=config.mock_seed)
 
@@ -156,15 +156,11 @@ def run_producer(config: ProducerConfig) -> int:
             topic=config.kafka_topic_orders,
             client_id=config.producer_client_id,
             log_level=config.log_level,
-            log_format=config.log_format
+            log_format=config.log_format,
         )
         logger.info("✅ Kafka producer initialized")
     except Exception as e:
-        logger.error(
-            "Failed to initialize Kafka producer",
-            exc_info=True,
-            extra={"error": str(e)}
-        )
+        logger.error("Failed to initialize Kafka producer", exc_info=True, extra={"error": str(e)})
         return 1
 
     # Get topic metadata for informational purposes
@@ -175,8 +171,8 @@ def run_producer(config: ProducerConfig) -> int:
             extra={
                 "topic": metadata["topic"],
                 "partition_count": metadata["partition_count"],
-                "partitions": metadata["partitions"]
-            }
+                "partitions": metadata["partitions"],
+            },
         )
 
     # Calculate sleep interval for rate limiting
@@ -188,8 +184,8 @@ def run_producer(config: ProducerConfig) -> int:
         extra={
             "rate": config.producer_rate,
             "sleep_interval_ms": sleep_interval * 1000,
-            "duration": config.producer_duration if config.producer_duration > 0 else "infinite"
-        }
+            "duration": config.producer_duration if config.producer_duration > 0 else "infinite",
+        },
     )
 
     # Production loop
@@ -208,8 +204,8 @@ def run_producer(config: ProducerConfig) -> int:
                         extra={
                             "duration": config.producer_duration,
                             "elapsed": elapsed,
-                            "orders_produced": orders_produced
-                        }
+                            "orders_produced": orders_produced,
+                        },
                     )
                     break
 
@@ -217,11 +213,7 @@ def run_producer(config: ProducerConfig) -> int:
             try:
                 order = generator.generate_order()
             except Exception as e:
-                logger.error(
-                    "Failed to generate order",
-                    exc_info=True,
-                    extra={"error": str(e)}
-                )
+                logger.error("Failed to generate order", exc_info=True, extra={"error": str(e)})
                 errors += 1
                 continue
 
@@ -241,18 +233,15 @@ def run_producer(config: ProducerConfig) -> int:
                             "elapsed_seconds": round(elapsed, 2),
                             "target_rate": config.producer_rate,
                             "actual_rate": round(actual_rate, 2),
-                            "errors": errors
-                        }
+                            "errors": errors,
+                        },
                     )
 
             except Exception as e:
                 logger.error(
                     "Failed to publish order",
                     exc_info=True,
-                    extra={
-                        "correlation_id": order.get("order_id"),
-                        "error": str(e)
-                    }
+                    extra={"correlation_id": order.get("order_id"), "error": str(e)},
                 )
                 errors += 1
                 continue
@@ -265,11 +254,7 @@ def run_producer(config: ProducerConfig) -> int:
         pass
 
     except Exception as e:
-        logger.error(
-            "Unexpected error in production loop",
-            exc_info=True,
-            extra={"error": str(e)}
-        )
+        logger.error("Unexpected error in production loop", exc_info=True, extra={"error": str(e)})
         return 1
 
     finally:
@@ -283,8 +268,8 @@ def run_producer(config: ProducerConfig) -> int:
                 "orders_produced": orders_produced,
                 "errors": errors,
                 "elapsed_seconds": round(elapsed, 2),
-                "actual_rate": round(actual_rate, 2)
-            }
+                "actual_rate": round(actual_rate, 2),
+            },
         )
 
         # Flush pending messages
@@ -295,26 +280,17 @@ def run_producer(config: ProducerConfig) -> int:
                 logger.info("✅ All messages delivered successfully")
             else:
                 logger.warning(
-                    f"⚠️  {remaining} messages not delivered",
-                    extra={"remaining": remaining}
+                    f"⚠️  {remaining} messages not delivered", extra={"remaining": remaining}
                 )
         except Exception as e:
-            logger.error(
-                "Error flushing producer",
-                exc_info=True,
-                extra={"error": str(e)}
-            )
+            logger.error("Error flushing producer", exc_info=True, extra={"error": str(e)})
 
         # Close producer
         try:
             producer.close(timeout=10.0)
             logger.info("✅ Producer closed successfully")
         except Exception as e:
-            logger.error(
-                "Error closing producer",
-                exc_info=True,
-                extra={"error": str(e)}
-            )
+            logger.error("Error closing producer", exc_info=True, extra={"error": str(e)})
 
         # Final statistics
         logger.info(
@@ -324,8 +300,12 @@ def run_producer(config: ProducerConfig) -> int:
                 "total_errors": errors,
                 "total_duration_seconds": round(elapsed, 2),
                 "average_rate": round(actual_rate, 2),
-                "success_rate": round((orders_produced - errors) / orders_produced * 100, 2) if orders_produced > 0 else 0
-            }
+                "success_rate": (
+                    round((orders_produced - errors) / orders_produced * 100, 2)
+                    if orders_produced > 0
+                    else 0
+                ),
+            },
         )
 
     return 0 if errors == 0 else 1
@@ -334,6 +314,7 @@ def run_producer(config: ProducerConfig) -> int:
 # ==============================================================================
 # CLI ARGUMENT PARSING
 # ==============================================================================
+
 
 def parse_args() -> argparse.Namespace:
     """
@@ -363,46 +344,28 @@ Examples:
 
   # Text logs for local development
   python -m src.producer.main --log-format text
-        """
+        """,
     )
 
     # Kafka configuration
     parser.add_argument(
-        "--bootstrap-servers",
-        type=str,
-        help="Kafka bootstrap servers (default: from config)"
+        "--bootstrap-servers", type=str, help="Kafka bootstrap servers (default: from config)"
     )
 
-    parser.add_argument(
-        "--topic",
-        type=str,
-        help="Kafka topic name (default: from config)"
-    )
+    parser.add_argument("--topic", type=str, help="Kafka topic name (default: from config)")
 
     # Producer settings
-    parser.add_argument(
-        "--rate",
-        type=int,
-        help="Orders per second (1-1000, default: from config)"
-    )
+    parser.add_argument("--rate", type=int, help="Orders per second (1-1000, default: from config)")
 
     parser.add_argument(
-        "--duration",
-        type=int,
-        help="Run duration in seconds (0=infinite, default: from config)"
+        "--duration", type=int, help="Run duration in seconds (0=infinite, default: from config)"
     )
 
-    parser.add_argument(
-        "--client-id",
-        type=str,
-        help="Producer client ID (default: from config)"
-    )
+    parser.add_argument("--client-id", type=str, help="Producer client ID (default: from config)")
 
     # Mock data
     parser.add_argument(
-        "--seed",
-        type=int,
-        help="Random seed for reproducible data (default: from config)"
+        "--seed", type=int, help="Random seed for reproducible data (default: from config)"
     )
 
     # Logging
@@ -410,14 +373,14 @@ Examples:
         "--log-level",
         type=str,
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Logging level (default: from config)"
+        help="Logging level (default: from config)",
     )
 
     parser.add_argument(
         "--log-format",
         type=str,
         choices=["json", "text"],
-        help="Log output format (default: from config)"
+        help="Log output format (default: from config)",
     )
 
     return parser.parse_args()
@@ -426,6 +389,7 @@ Examples:
 # ==============================================================================
 # MAIN ENTRY POINT
 # ==============================================================================
+
 
 def main() -> int:
     """
@@ -464,7 +428,7 @@ def main() -> int:
     print()
 
     # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
     signal.signal(signal.SIGTERM, signal_handler)  # Docker stop
 
     # Run producer

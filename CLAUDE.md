@@ -60,8 +60,129 @@ Educational Kafka pipeline demonstrating Apache Kafka fundamentals through a rea
 - `pytest-cov>=4.1.0` - Coverage reporting
 - `testcontainers>=3.7.0` - Integration testing
 - `black>=23.0.0` - Code formatting
-- `ruff>=0.1.0` - Fast linting
-- `mypy>=1.5.0` - Static type checking
+- `isort>=5.12.0` - Import sorting
+- `flake8>=6.1.0` - PEP 8 linting
+- `ruff>=0.1.0` - Fast linting (alternative to flake8)
+- `mypy>=1.7.0` - Static type checking
+- `bandit>=1.7.5` - Security vulnerability scanner
+
+## Code Quality & CI/CD
+
+### Local Pre-Commit Hooks
+Pre-commit hooks run automatically before each commit to ensure code quality:
+
+**Setup:**
+```bash
+# Pre-commit hook is automatically installed in .git/hooks/pre-commit
+# It activates the virtual environment and runs all checks
+chmod +x .git/hooks/pre-commit
+```
+
+**Checks performed:**
+1. ✅ **Black** - Code formatting (PEP 8 compliant, 100 char line length)
+2. ✅ **isort** - Import organization (compatible with Black)
+3. ✅ **Flake8** - Linting (PEP 8 violations, unused imports, undefined variables)
+4. ⚠️ **Mypy** - Type checking (non-blocking, for awareness)
+5. ✅ **Bandit** - Security vulnerability scanning
+
+**Auto-fix common issues:**
+```bash
+# Fix formatting and imports
+source kafka-venv/bin/activate
+black src/
+isort src/
+
+# View linting issues
+flake8 src/ --max-line-length=100 --extend-ignore=E203,W503
+
+# Check types
+mypy src --ignore-missing-imports
+
+# Skip hooks (not recommended)
+git commit --no-verify
+```
+
+### GitHub Actions (CI/CD Pipeline)
+Automated quality gates run on every PR and push to main:
+
+**Stage 1: Quick Checks (30-60s)**
+- Black formatting verification
+- isort import verification
+- Flake8 linting
+- Mypy type checking (non-blocking)
+
+**Stage 2: Tests & Analysis (2-3min)**
+- pytest test suite with coverage
+- SonarCloud code quality analysis
+- Security vulnerability scanning
+
+**Stage 3: Claude Code Review**
+- Automated AI code review
+- Triggered by mentioning `@claude` in PR comments
+- Provides architectural feedback and suggestions
+
+**Workflow Files:**
+- `.github/workflows/build.yml` - Build, lint, test, SonarCloud
+- `.github/workflows/claude.yml` - AI-powered code review
+
+### SonarCloud Integration
+Continuous code quality and security analysis:
+
+**Metrics tracked:**
+- Code coverage percentage
+- Code smells and technical debt
+- Security vulnerabilities
+- Code duplication
+- Maintainability rating
+
+**Configuration:** `sonar-project.properties`
+- Project: `adamkwhite_KafkaFoodPipeline`
+- Sources: `src/`
+- Exclusions: tests, cache, migrations
+- Coverage report: `coverage.xml`
+
+**View results:**
+```bash
+# After PR is created, check SonarCloud dashboard
+# https://sonarcloud.io/project/overview?id=adamkwhite_KafkaFoodPipeline
+```
+
+### Tool Configuration (pyproject.toml)
+Centralized configuration for all code quality tools:
+
+```toml
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--cov=src", "--cov-report=xml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+```
+
+### Quality Standards
+**Code must pass:**
+- ✅ Black formatting (100% compliance)
+- ✅ isort import organization
+- ✅ Flake8 linting (no PEP 8 violations)
+- ✅ Bandit security scan (no high/medium vulnerabilities)
+
+**Code should aim for:**
+- ⚠️ Mypy type coverage (improving incrementally)
+- 🎯 80%+ test coverage (Phase 4.0 goal)
+- 🎯 SonarCloud Quality Gate: Pass
 
 ## Implementation Details
 
@@ -321,4 +442,12 @@ Every file includes "WHY" explanations, not just "HOW" implementations.
 ---
 
 **Last Updated**: 2025-10-10
-**Session Summary**: Completed Phase 2.0 (Producer Service), tested 4,029+ messages, ready for Phase 3.0 (Consumer)
+**Session Summary**:
+- Completed Phase 2.0 (Producer Service)
+- Added comprehensive code quality gates:
+  - Local pre-commit hooks (Black, isort, Flake8, Mypy, Bandit)
+  - GitHub Actions CI/CD (build, lint, test, SonarCloud)
+  - Claude Code integration for AI-powered code review
+  - Centralized tool configuration in pyproject.toml
+- All code formatted and passing quality checks
+- Ready for Phase 3.0 (Consumer Service)

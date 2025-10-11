@@ -33,16 +33,16 @@ BLOCKCHAIN ANALOGY:
 """
 
 import json
-import logging
-from typing import Dict, Any, Optional, Callable
-from confluent_kafka import Producer, KafkaError, KafkaException
-from confluent_kafka.admin import AdminClient
+from typing import Any, Callable, Dict, Optional
+
+from confluent_kafka import KafkaError, KafkaException, Producer
 
 from src.shared.logger import setup_logger
 
 # ==============================================================================
 # KAFKA PRODUCER CLASS
 # ==============================================================================
+
 
 class OrderProducer:
     """
@@ -70,7 +70,7 @@ class OrderProducer:
         client_id: str = "order-producer",
         delivery_callback: Optional[Callable] = None,
         log_level: str = "INFO",
-        log_format: str = "json"
+        log_format: str = "json",
     ):
         """
         Initialize Kafka producer.
@@ -92,10 +92,7 @@ class OrderProducer:
 
         # Set up structured logging
         self.logger = setup_logger(
-            name=__name__,
-            service_name="order-producer",
-            log_level=log_level,
-            log_format=log_format
+            name=__name__, service_name="order-producer", log_level=log_level, log_format=log_format
         )
 
         # Store custom callback or use default
@@ -106,39 +103,32 @@ class OrderProducer:
         # Note: Not all librdkafka (Java) configs are available in Python client
         producer_config = {
             # === CONNECTION ===
-            'bootstrap.servers': bootstrap_servers,
-            'client.id': client_id,
-
+            "bootstrap.servers": bootstrap_servers,
+            "client.id": client_id,
             # === RELIABILITY ===
             # Idempotence prevents duplicate messages
             # REQUIRES acks='all' (automatic when idempotence enabled)
             # Also sets: retries=INT_MAX, max.in.flight=5
-            'enable.idempotence': True,
-
+            "enable.idempotence": True,
             # acks must be 'all' when idempotence is enabled
             # acks='all' or -1: Wait for all replicas (required for idempotence)
             # acks=1: Leader only (can't use with idempotence)
             # acks=0: No acknowledgment (can't use with idempotence)
-            'acks': 'all',
-
+            "acks": "all",
             # === PERFORMANCE ===
             # Compression reduces network bandwidth and storage
             # Options: none, gzip, snappy, lz4, zstd
-            'compression.type': 'snappy',
-
+            "compression.type": "snappy",
             # Batching parameters
-            'linger.ms': 10,  # Wait 10ms to batch messages (throughput vs latency)
-            'batch.num.messages': 10000,  # Batch up to 10k messages
-
+            "linger.ms": 10,  # Wait 10ms to batch messages (throughput vs latency)
+            "batch.num.messages": 10000,  # Batch up to 10k messages
             # === ERROR HANDLING ===
             # Retries on transient failures (idempotence sets this to INT_MAX)
-            'retry.backoff.ms': 100,  # Wait 100ms between retries
-
+            "retry.backoff.ms": 100,  # Wait 100ms between retries
             # Request timeout
-            'request.timeout.ms': 30000,  # 30 seconds
-
+            "request.timeout.ms": 30000,  # 30 seconds
             # Max in-flight requests (idempotence allows up to 5)
-            'max.in.flight.requests.per.connection': 5,
+            "max.in.flight.requests.per.connection": 5,
         }
 
         # Initialize producer
@@ -150,15 +140,13 @@ class OrderProducer:
                     "bootstrap_servers": bootstrap_servers,
                     "topic": topic,
                     "client_id": client_id,
-                    "compression": producer_config['compression.type'],
-                    "idempotence": producer_config['enable.idempotence']
-                }
+                    "compression": producer_config["compression.type"],
+                    "idempotence": producer_config["enable.idempotence"],
+                },
             )
         except KafkaException as e:
             self.logger.error(
-                "Failed to initialize Kafka producer",
-                exc_info=True,
-                extra={"error": str(e)}
+                "Failed to initialize Kafka producer", exc_info=True, extra={"error": str(e)}
             )
             raise
 
@@ -195,8 +183,8 @@ class OrderProducer:
                     "topic": msg.topic(),
                     "partition": msg.partition() if msg else None,
                     # Try to extract order_id from message value
-                    "order_id": self._extract_order_id(msg)
-                }
+                    "order_id": self._extract_order_id(msg),
+                },
             )
         else:
             # Delivery successful!
@@ -210,8 +198,8 @@ class OrderProducer:
                     "topic": msg.topic(),
                     "partition": msg.partition(),
                     "offset": msg.offset(),
-                    "latency_ms": msg.latency() if hasattr(msg, 'latency') else None
-                }
+                    "latency_ms": msg.latency() if hasattr(msg, "latency") else None,
+                },
             )
 
     def _extract_order_id(self, msg) -> Optional[str]:
@@ -226,8 +214,8 @@ class OrderProducer:
         """
         try:
             if msg and msg.value():
-                order_data = json.loads(msg.value().decode('utf-8'))
-                return order_data.get('order_id')
+                order_data = json.loads(msg.value().decode("utf-8"))
+                return order_data.get("order_id")
         except Exception:
             pass
         return None
@@ -271,22 +259,22 @@ class OrderProducer:
             >>> producer.flush()  # Wait for delivery
         """
         # Validate required fields
-        if 'order_id' not in order:
+        if "order_id" not in order:
             raise ValueError("Order missing 'order_id' field")
-        if 'customer_id' not in order:
+        if "customer_id" not in order:
             raise ValueError("Order missing 'customer_id' field (required for partition key)")
 
-        order_id = order['order_id']
-        customer_id = order['customer_id']
+        order_id = order["order_id"]
+        customer_id = order["customer_id"]
 
         try:
             # Serialize order to JSON bytes
             # Kafka messages are always bytes
-            value_bytes = json.dumps(order).encode('utf-8')
+            value_bytes = json.dumps(order).encode("utf-8")
 
             # Partition key as bytes
             # Kafka uses key to determine partition: hash(key) % num_partitions
-            key_bytes = customer_id.encode('utf-8')
+            key_bytes = customer_id.encode("utf-8")
 
             # Asynchronous send (non-blocking)
             # Message goes to internal buffer, sent in background
@@ -308,9 +296,9 @@ class OrderProducer:
                     "correlation_id": order_id,
                     "customer_id": customer_id,
                     "topic": self.topic,
-                    "total_amount": order.get('total_amount'),
-                    "items_count": len(order.get('items', []))
-                }
+                    "total_amount": order.get("total_amount"),
+                    "items_count": len(order.get("items", [])),
+                },
             )
 
         except BufferError as e:
@@ -325,8 +313,8 @@ class OrderProducer:
                 extra={
                     "correlation_id": order_id,
                     "error": str(e),
-                    "advice": "Slow down production or increase buffer.memory"
-                }
+                    "advice": "Slow down production or increase buffer.memory",
+                },
             )
             raise
 
@@ -338,8 +326,8 @@ class OrderProducer:
                 extra={
                     "correlation_id": order_id,
                     "error": str(e),
-                    "error_code": e.args[0].code() if e.args else None
-                }
+                    "error_code": e.args[0].code() if e.args else None,
+                },
             )
             raise
 
@@ -348,10 +336,7 @@ class OrderProducer:
             self.logger.error(
                 "Unexpected error publishing order",
                 exc_info=True,
-                extra={
-                    "correlation_id": order_id,
-                    "error": str(e)
-                }
+                extra={"correlation_id": order_id, "error": str(e)},
             )
             raise
 
@@ -387,10 +372,7 @@ class OrderProducer:
             >>> if remaining == 0:
             ...     print("All orders delivered!")
         """
-        self.logger.info(
-            "Flushing producer buffer",
-            extra={"timeout": timeout}
-        )
+        self.logger.info("Flushing producer buffer", extra={"timeout": timeout})
 
         # Flush blocks until all messages delivered or timeout
         remaining = self.producer.flush(timeout=timeout)
@@ -401,8 +383,8 @@ class OrderProducer:
                 extra={
                     "remaining_messages": remaining,
                     "timeout": timeout,
-                    "advice": "Increase timeout or check broker health"
-                }
+                    "advice": "Increase timeout or check broker health",
+                },
             )
         else:
             self.logger.info("All messages delivered successfully")
@@ -436,7 +418,7 @@ class OrderProducer:
         if remaining > 0:
             self.logger.error(
                 f"Producer closed with {remaining} messages undelivered",
-                extra={"remaining_messages": remaining}
+                extra={"remaining_messages": remaining},
             )
 
         self.logger.info("Producer shutdown complete")
@@ -468,25 +450,25 @@ class OrderProducer:
 
             partitions = []
             for partition_id, partition_metadata in topic_metadata.partitions.items():
-                partitions.append({
-                    "partition_id": partition_id,
-                    "leader": partition_metadata.leader,
-                    "replicas": partition_metadata.replicas,
-                    "isrs": partition_metadata.isrs  # In-Sync Replicas
-                })
+                partitions.append(
+                    {
+                        "partition_id": partition_id,
+                        "leader": partition_metadata.leader,
+                        "replicas": partition_metadata.replicas,
+                        "isrs": partition_metadata.isrs,  # In-Sync Replicas
+                    }
+                )
 
             return {
                 "topic": self.topic,
                 "partition_count": len(partitions),
                 "partitions": partitions,
-                "error": topic_metadata.error
+                "error": topic_metadata.error,
             }
 
         except Exception as e:
             self.logger.error(
-                "Failed to get topic metadata",
-                exc_info=True,
-                extra={"error": str(e)}
+                "Failed to get topic metadata", exc_info=True, extra={"error": str(e)}
             )
             return {"error": str(e)}
 

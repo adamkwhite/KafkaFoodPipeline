@@ -26,8 +26,18 @@ testcontainers>=3.7.0
 # - Ensures consistent code style
 black>=23.0.0
 
+# isort: Python import sorter
+# - Organizes imports consistently
+# - Compatible with Black
+isort>=5.12.0
+
+# flake8: Python linting tool
+# - Enforces PEP 8 style guide
+# - Checks for common errors
+flake8>=6.1.0
+
 # ruff: Fast Python linter
-# - Replaces flake8, isort, pylint
+# - Alternative to flake8 (faster)
 # - Catches bugs and style issues
 ruff>=0.1.0
 
@@ -35,3 +45,8 @@ ruff>=0.1.0
 # - Catches type errors before runtime
 # - Works with Pydantic models
 mypy>=1.7.0
+
+# bandit: Security linting tool
+# - Scans for common security issues
+# - Checks for hardcoded secrets, SQL injection, etc.
+bandit>=1.7.5

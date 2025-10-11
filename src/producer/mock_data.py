@@ -28,8 +28,9 @@ LEARNING OBJECTIVES:
 """
 
 import random
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from datetime import datetime
+from typing import Any, Dict, List
+
 from faker import Faker
 
 # ==============================================================================
@@ -73,6 +74,7 @@ ORDER_ID_FORMAT = "ORD-{date}-{sequence:05d}"
 # - Realistic pattern: Real apps have finite user base
 # - Testing: Verify ordering guarantees per customer
 # - Analytics: Track customer order history
+
 
 class MockDataGenerator:
     """
@@ -150,12 +152,9 @@ class MockDataGenerator:
             # Generate phone number
             phone = fake.phone_number()
 
-            customers.append({
-                "customer_id": customer_id,
-                "name": name,
-                "email": email,
-                "phone": phone
-            })
+            customers.append(
+                {"customer_id": customer_id, "name": name, "email": email, "phone": phone}
+            )
 
         return customers
 
@@ -193,38 +192,35 @@ class MockDataGenerator:
             ("Cheeseburger", "Double cheese with beef patty", 9.99, "Burgers"),
             ("Bacon Burger", "Beef patty with crispy bacon", 10.99, "Burgers"),
             ("Veggie Burger", "Plant-based patty with vegetables", 8.49, "Burgers"),
-
             ("French Fries", "Crispy golden fries", 3.49, "Sides"),
             ("Onion Rings", "Beer-battered onion rings", 4.49, "Sides"),
             ("Sweet Potato Fries", "Crispy sweet potato fries", 4.99, "Sides"),
             ("Coleslaw", "Fresh cabbage slaw", 2.99, "Sides"),
-
             ("Caesar Salad", "Romaine with Caesar dressing", 6.99, "Salads"),
             ("Garden Salad", "Mixed greens with vegetables", 5.99, "Salads"),
-
             ("Coke", "Coca-Cola classic", 2.49, "Beverages"),
             ("Sprite", "Lemon-lime soda", 2.49, "Beverages"),
             ("Iced Tea", "Freshly brewed iced tea", 2.99, "Beverages"),
             ("Lemonade", "Homemade lemonade", 2.99, "Beverages"),
             ("Milkshake", "Chocolate, vanilla, or strawberry", 4.99, "Beverages"),
-
             ("Apple Pie", "Warm apple pie with cinnamon", 3.99, "Desserts"),
             ("Ice Cream Sundae", "Vanilla ice cream with toppings", 4.49, "Desserts"),
             ("Brownie", "Chocolate fudge brownie", 3.49, "Desserts"),
-
             ("Chicken Nuggets", "Crispy chicken nuggets (6 pieces)", 5.99, "Chicken"),
             ("Chicken Sandwich", "Grilled chicken with lettuce", 7.99, "Chicken"),
         ]
 
         menu_items = []
         for i, (name, description, price, category) in enumerate(menu_data[:count], start=1):
-            menu_items.append({
-                "item_id": f"ITEM-{i:03d}",
-                "name": name,
-                "description": description,
-                "price": price,
-                "category": category
-            })
+            menu_items.append(
+                {
+                    "item_id": f"ITEM-{i:03d}",
+                    "name": name,
+                    "description": description,
+                    "price": price,
+                    "category": category,
+                }
+            )
 
         return menu_items
 
@@ -277,15 +273,17 @@ class MockDataGenerator:
         order_items = []
         for item in selected_items:
             quantity = random.randint(1, 3)  # 1-3 of each item
-            subtotal = round(item['price'] * quantity, 2)
+            subtotal = round(item["price"] * quantity, 2)
 
-            order_items.append({
-                "item_id": item['item_id'],
-                "name": item['name'],
-                "quantity": quantity,
-                "price": item['price'],
-                "subtotal": subtotal
-            })
+            order_items.append(
+                {
+                    "item_id": item["item_id"],
+                    "name": item["name"],
+                    "quantity": quantity,
+                    "price": item["price"],
+                    "subtotal": subtotal,
+                }
+            )
 
         return order_items
 
@@ -366,22 +364,22 @@ class MockDataGenerator:
         items = self.get_random_menu_items(min_items=1, max_items=5)
 
         # Calculate total amount from items
-        total_amount = sum(item['subtotal'] for item in items)
+        total_amount = sum(item["subtotal"] for item in items)
         total_amount = round(total_amount, 2)
 
         # Generate timestamp (ISO 8601 format for consistency)
-        created_at = datetime.utcnow().isoformat() + 'Z'
+        created_at = datetime.utcnow().isoformat() + "Z"
 
         # Build complete order
         order = {
             "order_id": self.generate_order_id(),
-            "customer_id": customer['customer_id'],  # PARTITION KEY!
-            "customer_name": customer['name'],
-            "customer_email": customer['email'],
+            "customer_id": customer["customer_id"],  # PARTITION KEY!
+            "customer_name": customer["name"],
+            "customer_email": customer["email"],
             "items": items,
             "total_amount": total_amount,
             "status": "pending",  # Initial status
-            "created_at": created_at
+            "created_at": created_at,
         }
 
         return order

@@ -213,3 +213,4 @@ docs/_templates/
 # ✅ docs/ (documentation)
 # ✅ README.md (project documentation)
 # ✅ .gitignore (this file!)
+.claude/commands/

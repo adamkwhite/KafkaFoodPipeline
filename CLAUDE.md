@@ -66,6 +66,41 @@ Educational Kafka pipeline demonstrating Apache Kafka fundamentals through a rea
 - `mypy>=1.7.0` - Static type checking
 - `bandit>=1.7.5` - Security vulnerability scanner
 
+## Security Standards
+
+### Supply Chain Security
+**CRITICAL: Always pin dependencies to commit SHAs, not version tags or branches**
+
+**GitHub Actions:**
+```yaml
+# ❌ NEVER USE - Mutable, vulnerable to supply chain attacks
+uses: actions/checkout@v4
+uses: actions/checkout@master
+uses: SonarSource/sonarcloud-github-action@master
+
+# ✅ ALWAYS USE - Immutable commit SHA with version comment
+uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8  # v5.0.0
+```
+
+**Why this matters:**
+- Version tags can be moved to point at malicious code
+- Branch names pull latest code (can change without notice)
+- Commit SHAs are immutable - exact code, forever
+- Prevents supply chain attacks (SolarWinds, event-stream, codecov)
+
+**Python Dependencies:**
+```python
+# Pin exact versions in requirements.txt
+confluent-kafka==2.3.0  # Not >=2.3.0 or ~2.3.0
+```
+
+**Docker Images:**
+```dockerfile
+# Pin to digest, not tag
+FROM python:3.11@sha256:abc123...  # Not python:3.11 or python:latest
+```
+
 ## Code Quality & CI/CD
 
 ### Local Pre-Commit Hooks

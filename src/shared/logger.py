@@ -33,13 +33,13 @@ import json
 import logging
 import sys
 from datetime import datetime
-from typing import Any, Dict, Optional
-
+from typing import Any, Dict
 
 # ==============================================================================
 # JSON FORMATTER
 # ==============================================================================
 # Custom formatter that outputs logs as JSON instead of plain text
+
 
 class JSONFormatter(logging.Formatter):
     """
@@ -54,11 +54,7 @@ class JSONFormatter(logging.Formatter):
     - extra fields: Any additional context passed to logger
     """
 
-    def __init__(
-        self,
-        service_name: str = "kafka-pipeline",
-        include_extra: bool = True
-    ):
+    def __init__(self, service_name: str = "kafka-pipeline", include_extra: bool = True):
         """
         Initialize JSON formatter.
 
@@ -90,31 +86,49 @@ class JSONFormatter(logging.Formatter):
         }
 
         # Add correlation ID if present (order_id for tracing)
-        if hasattr(record, 'correlation_id'):
-            log_data['correlation_id'] = record.correlation_id
+        if hasattr(record, "correlation_id"):
+            log_data["correlation_id"] = record.correlation_id
 
         # Add exception info if present
         if record.exc_info:
-            log_data['exception'] = self.formatException(record.exc_info)
+            log_data["exception"] = self.formatException(record.exc_info)
 
         # Add extra fields (customer_id, latency, etc.)
         if self.include_extra:
             # Get all extra attributes not in standard LogRecord
             standard_attrs = {
-                'name', 'msg', 'args', 'created', 'filename', 'funcName',
-                'levelname', 'levelno', 'lineno', 'module', 'msecs',
-                'message', 'pathname', 'process', 'processName', 'relativeCreated',
-                'thread', 'threadName', 'exc_info', 'exc_text', 'stack_info',
-                'correlation_id'  # Already handled above
+                "name",
+                "msg",
+                "args",
+                "created",
+                "filename",
+                "funcName",
+                "levelname",
+                "levelno",
+                "lineno",
+                "module",
+                "msecs",
+                "message",
+                "pathname",
+                "process",
+                "processName",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "correlation_id",  # Already handled above
             }
 
             extra_fields = {
-                k: v for k, v in record.__dict__.items()
-                if k not in standard_attrs and not k.startswith('_')
+                k: v
+                for k, v in record.__dict__.items()
+                if k not in standard_attrs and not k.startswith("_")
             }
 
             if extra_fields:
-                log_data['extra'] = extra_fields
+                log_data["extra"] = extra_fields
 
         # Return JSON string (one line for easy parsing)
         return json.dumps(log_data, default=str)
@@ -131,13 +145,14 @@ class JSONFormatter(logging.Formatter):
             ISO 8601 formatted timestamp (e.g., "2025-01-10T14:30:00.123Z")
         """
         dt = datetime.utcfromtimestamp(created)
-        return dt.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # ==============================================================================
 # PLAIN TEXT FORMATTER (for development)
 # ==============================================================================
 # Human-readable format for local development
+
 
 class PlainTextFormatter(logging.Formatter):
     """
@@ -149,8 +164,8 @@ class PlainTextFormatter(logging.Formatter):
     def __init__(self, service_name: str = "kafka-pipeline"):
         """Initialize plain text formatter."""
         super().__init__(
-            fmt=f'[%(asctime)s] %(levelname)s [{service_name}] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            fmt=f"[%(asctime)s] %(levelname)s [{service_name}] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
 
@@ -158,11 +173,9 @@ class PlainTextFormatter(logging.Formatter):
 # LOGGER SETUP
 # ==============================================================================
 
+
 def setup_logger(
-    name: str,
-    service_name: str,
-    log_level: str = "INFO",
-    log_format: str = "json"
+    name: str, service_name: str, log_level: str = "INFO", log_format: str = "json"
 ) -> logging.Logger:
     """
     Set up structured logger for Kafka services.
@@ -231,6 +244,7 @@ def setup_logger(
 # ==============================================================================
 # Helper to automatically include correlation_id in all log messages
 
+
 class CorrelationAdapter(logging.LoggerAdapter):
     """
     Logger adapter that automatically adds correlation_id to all logs.
@@ -255,13 +269,13 @@ class CorrelationAdapter(logging.LoggerAdapter):
             Tuple of (message, updated_kwargs)
         """
         # Get extra dict or create new one
-        extra = kwargs.get('extra', {})
+        extra = kwargs.get("extra", {})
 
         # Add correlation_id from adapter context
-        if 'correlation_id' in self.extra:
-            extra['correlation_id'] = self.extra['correlation_id']
+        if "correlation_id" in self.extra:
+            extra["correlation_id"] = self.extra["correlation_id"]
 
-        kwargs['extra'] = extra
+        kwargs["extra"] = extra
         return msg, kwargs
 
 

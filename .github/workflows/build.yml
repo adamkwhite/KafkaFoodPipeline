@@ -1,0 +1,86 @@
+name: Build and analyze
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Stage 1: Quick validation checks (30-60 seconds)
+  quick-checks:
+    name: Quick Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: |
+          pip install flake8 mypy black isort
+
+      - name: Check code formatting (Black)
+        run: |
+          black --check src/ || (echo "❌ Code formatting issues found. Run 'black src/' to fix." && exit 1)
+
+      - name: Check import sorting (isort)
+        run: |
+          isort --check-only src/ || (echo "❌ Import sorting issues found. Run 'isort src/' to fix." && exit 1)
+
+      - name: Lint code (Flake8)
+        run: |
+          flake8 src/ --max-line-length=100 --extend-ignore=E203,W503
+
+      - name: Type checking (Mypy)
+        run: |
+          mypy src --ignore-missing-imports || (echo "⚠️ Type checking found issues. Review mypy output." && exit 0)
+
+  # Stage 2: Tests and SonarCloud analysis (2-3 minutes)
+  sonarcloud:
+    name: Tests & SonarCloud Analysis
+    needs: quick-checks  # Only run if quick checks pass
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ --cov=src --cov-report=xml --cov-report=term
+        continue-on-error: true  # Allow SonarCloud to run even if tests fail
+
+      - name: SonarCloud Scan
+        if: github.actor != 'dependabot[bot]'
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Clean up build artifacts
+        if: always() && github.event_name == 'push'
+        run: |
+          git checkout -- . || true
+          git clean -fd || true
+          git status

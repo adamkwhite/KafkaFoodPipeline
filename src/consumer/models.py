@@ -28,15 +28,14 @@ from typing import Optional
 
 from sqlalchemy import (
     DECIMAL,
-    Index,
-    String,
     TIMESTAMP,
     CheckConstraint,
+    Index,
+    String,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
 
 # ==============================================================================
 # DECLARATIVE BASE
@@ -44,8 +43,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 # All models inherit from this base class
 # Provides SQLAlchemy ORM functionality
 
+
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
+
     pass
 
 
@@ -68,6 +69,7 @@ class Base(DeclarativeBase):
 #   session.add(order)       # Add to session
 #   session.commit()         # INSERT INTO orders ...
 #
+
 
 class Order(Base):
     """
@@ -96,9 +98,7 @@ class Order(Base):
     # primary_key=True automatically creates index
 
     order_id: Mapped[str] = mapped_column(
-        String(50),
-        primary_key=True,
-        comment="Unique order identifier from Kafka message"
+        String(50), primary_key=True, comment="Unique order identifier from Kafka message"
     )
 
     # ==========================================================================
@@ -112,7 +112,7 @@ class Order(Base):
         String(50),
         nullable=False,
         index=True,  # Creates idx_orders_customer_id index
-        comment="Customer identifier, used as Kafka partition key"
+        comment="Customer identifier, used as Kafka partition key",
     )
 
     # ==========================================================================
@@ -133,7 +133,7 @@ class Order(Base):
     items: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,
-        comment="Order items as JSONB array. Indexed with GIN for fast queries."
+        comment="Order items as JSONB array. Indexed with GIN for fast queries.",
     )
 
     # ==========================================================================
@@ -148,9 +148,9 @@ class Order(Base):
 
     total_amount: Mapped[float] = mapped_column(
         DECIMAL(10, 2),
-        CheckConstraint('total_amount > 0', name='check_positive_amount'),
+        CheckConstraint("total_amount > 0", name="check_positive_amount"),
         nullable=False,
-        comment="Total order amount. Must be positive."
+        comment="Total order amount. Must be positive.",
     )
 
     # ==========================================================================
@@ -162,9 +162,7 @@ class Order(Base):
     #   status: Mapped[str] = mapped_column(status_enum, ...)
 
     status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        comment="Order status: pending, processing, completed, failed"
+        String(20), nullable=False, comment="Order status: pending, processing, completed, failed"
     )
 
     # ==========================================================================
@@ -180,13 +178,13 @@ class Order(Base):
         TIMESTAMP,
         nullable=False,
         index=True,  # For time-based queries
-        comment="Order creation timestamp from Kafka message"
+        comment="Order creation timestamp from Kafka message",
     )
 
     processed_at: Mapped[Optional[datetime]] = mapped_column(
         TIMESTAMP,
-        server_default=text('CURRENT_TIMESTAMP'),  # Database sets this
-        comment="Database write timestamp, used for latency tracking"
+        server_default=text("CURRENT_TIMESTAMP"),  # Database sets this
+        comment="Database write timestamp, used for latency tracking",
     )
 
     # ==========================================================================
@@ -196,15 +194,13 @@ class Order(Base):
 
     __table_args__ = (
         # GIN index for JSONB queries (full-text search in items)
-        Index('idx_orders_items_gin', 'items', postgresql_using='gin'),
-
+        Index("idx_orders_items_gin", "items", postgresql_using="gin"),
         # Composite index for common query: customer + time range
         # Example: "Get customer X's orders from last month"
         # First column (customer_id) for filtering, second (created_at) for sorting
-        Index('idx_orders_customer_created', 'customer_id', 'created_at'),
-
+        Index("idx_orders_customer_created", "customer_id", "created_at"),
         # Table comment
-        {'comment': 'Order records consumed from Kafka food-orders topic'}
+        {"comment": "Order records consumed from Kafka food-orders topic"},
     )
 
     # ==========================================================================

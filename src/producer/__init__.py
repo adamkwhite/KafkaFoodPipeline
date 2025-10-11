@@ -64,17 +64,18 @@ NEXT STEPS AFTER THIS MODULE:
 __version__ = "1.0.0"
 __author__ = "Kafka Food Pipeline"
 
+from src.producer.config import ProducerConfig, load_config
+from src.producer.mock_data import MockDataGenerator
+
 # Package exports (available when importing: from src.producer import ...)
 # Import classes for convenient access
 from src.producer.producer import OrderProducer
-from src.producer.mock_data import MockDataGenerator
-from src.producer.config import ProducerConfig, load_config
 
 __all__ = [
-    "OrderProducer",      # Main producer class (from producer.py)
+    "OrderProducer",  # Main producer class (from producer.py)
     "MockDataGenerator",  # Mock data generator (from mock_data.py)
-    "ProducerConfig",     # Configuration class (from config.py)
-    "load_config",        # Configuration loader function
+    "ProducerConfig",  # Configuration class (from config.py)
+    "load_config",  # Configuration loader function
 ]
 
 # ==============================================================================

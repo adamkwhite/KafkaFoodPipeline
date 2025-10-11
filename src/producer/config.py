@@ -22,11 +22,9 @@ PYDANTIC VALIDATION:
 - Documentation via Field descriptions
 """
 
-import os
-from typing import Optional
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
 
 # Load .env file if present (local development)
 # In production, use actual environment variables
@@ -63,21 +61,21 @@ class ProducerConfig(BaseSettings):
         description="Kafka broker addresses (comma-separated for multiple brokers)",
         json_schema_extra={
             "example": "kafka:9092",
-            "production_example": "broker1:9092,broker2:9092,broker3:9092"
-        }
+            "production_example": "broker1:9092,broker2:9092,broker3:9092",
+        },
     )
 
     kafka_topic_orders: str = Field(
         default="food-orders",
         description="Kafka topic for order messages",
-        json_schema_extra={"example": "food-orders"}
+        json_schema_extra={"example": "food-orders"},
     )
 
     # === PRODUCER SETTINGS ===
     producer_client_id: str = Field(
         default="order-producer",
         description="Producer client identifier (visible in broker logs and monitoring)",
-        json_schema_extra={"example": "order-producer-instance-1"}
+        json_schema_extra={"example": "order-producer-instance-1"},
     )
 
     producer_rate: int = Field(
@@ -87,18 +85,15 @@ class ProducerConfig(BaseSettings):
         description="Number of orders to generate per second (1-1000)",
         json_schema_extra={
             "example": 10,
-            "note": "Start low (10) for testing, increase for load testing"
-        }
+            "note": "Start low (10) for testing, increase for load testing",
+        },
     )
 
     producer_duration: int = Field(
         default=60,
         ge=0,
         description="Producer run duration in seconds (0 = run indefinitely)",
-        json_schema_extra={
-            "example": 60,
-            "note": "0 for continuous production, >0 for batch runs"
-        }
+        json_schema_extra={"example": 60, "note": "0 for continuous production, >0 for batch runs"},
     )
 
     # === MOCK DATA SETTINGS ===
@@ -107,21 +102,21 @@ class ProducerConfig(BaseSettings):
         description="Random seed for reproducible mock data generation",
         json_schema_extra={
             "example": 42,
-            "note": "Same seed = same customers and orders (useful for testing)"
-        }
+            "note": "Same seed = same customers and orders (useful for testing)",
+        },
     )
 
     # === LOGGING CONFIGURATION ===
     log_level: str = Field(
         default="INFO",
         description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-        json_schema_extra={"example": "INFO"}
+        json_schema_extra={"example": "INFO"},
     )
 
     log_format: str = Field(
         default="json",
         description="Log output format (json for production, text for development)",
-        json_schema_extra={"example": "json", "alternatives": ["json", "text"]}
+        json_schema_extra={"example": "json", "alternatives": ["json", "text"]},
     )
 
     # === PERFORMANCE TUNING (Advanced) ===
@@ -130,8 +125,8 @@ class ProducerConfig(BaseSettings):
         description="Compression algorithm (none, gzip, snappy, lz4, zstd)",
         json_schema_extra={
             "example": "snappy",
-            "note": "snappy = good balance of speed and compression"
-        }
+            "note": "snappy = good balance of speed and compression",
+        },
     )
 
     producer_linger_ms: int = Field(
@@ -141,8 +136,8 @@ class ProducerConfig(BaseSettings):
         description="Time to wait for batching messages (milliseconds)",
         json_schema_extra={
             "example": 10,
-            "note": "0=send immediately (low latency), >0=batch for throughput"
-        }
+            "note": "0=send immediately (low latency), >0=batch for throughput",
+        },
     )
 
     producer_batch_size: int = Field(
@@ -151,8 +146,8 @@ class ProducerConfig(BaseSettings):
         description="Maximum batch size in bytes",
         json_schema_extra={
             "example": 16384,
-            "note": "16KB default, increase for higher throughput"
-        }
+            "note": "16KB default, increase for higher throughput",
+        },
     )
 
     producer_buffer_memory: int = Field(
@@ -161,8 +156,8 @@ class ProducerConfig(BaseSettings):
         description="Total memory for buffering pending messages (bytes)",
         json_schema_extra={
             "example": 33554432,
-            "note": "32MB default, increase if getting BufferError"
-        }
+            "note": "32MB default, increase if getting BufferError",
+        },
     )
 
     producer_acks: int = Field(
@@ -170,10 +165,7 @@ class ProducerConfig(BaseSettings):
         ge=0,
         le=1,
         description="Acknowledgment level (0=none, 1=leader, -1/all=all replicas)",
-        json_schema_extra={
-            "example": 1,
-            "note": "1 = good balance, 'all' for critical data"
-        }
+        json_schema_extra={"example": 1, "note": "1 = good balance, 'all' for critical data"},
     )
 
     enable_idempotence: bool = Field(
@@ -181,12 +173,13 @@ class ProducerConfig(BaseSettings):
         description="Enable idempotent producer (prevents duplicates)",
         json_schema_extra={
             "example": True,
-            "note": "Recommended for production (exactly-once within partition)"
-        }
+            "note": "Recommended for production (exactly-once within partition)",
+        },
     )
 
     class Config:
         """Pydantic configuration."""
+
         # Allow loading from .env file
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -210,14 +203,14 @@ class ProducerConfig(BaseSettings):
             >>> producer = Producer(kafka_conf)
         """
         return {
-            'bootstrap.servers': self.kafka_bootstrap_servers,
-            'client.id': self.producer_client_id,
-            'compression.type': self.producer_compression,
-            'linger.ms': self.producer_linger_ms,
-            'batch.size': self.producer_batch_size,
-            'buffer.memory': self.producer_buffer_memory,
-            'acks': self.producer_acks,
-            'enable.idempotence': self.enable_idempotence,
+            "bootstrap.servers": self.kafka_bootstrap_servers,
+            "client.id": self.producer_client_id,
+            "compression.type": self.producer_compression,
+            "linger.ms": self.producer_linger_ms,
+            "batch.size": self.producer_batch_size,
+            "buffer.memory": self.producer_buffer_memory,
+            "acks": self.producer_acks,
+            "enable.idempotence": self.enable_idempotence,
         }
 
     def display_config(self) -> str:
@@ -259,6 +252,7 @@ Mock Data:
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
+
 
 def load_config() -> ProducerConfig:
     """
@@ -303,15 +297,13 @@ def validate_kafka_connection(config: ProducerConfig) -> bool:
     from confluent_kafka.admin import AdminClient
 
     try:
-        admin_client = AdminClient({
-            'bootstrap.servers': config.kafka_bootstrap_servers
-        })
+        admin_client = AdminClient({"bootstrap.servers": config.kafka_bootstrap_servers})
 
         # List topics as connectivity test
         metadata = admin_client.list_topics(timeout=10)
 
-        # Check if our topic exists
-        topic_exists = config.kafka_topic_orders in metadata.topics
+        # Check if our topic exists (validate connection works)
+        _ = config.kafka_topic_orders in metadata.topics
 
         return True
 

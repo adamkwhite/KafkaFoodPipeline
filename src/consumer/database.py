@@ -257,7 +257,7 @@ class DatabaseManager:
             URL with password replaced by asterisks
 
         Example:
-            >>> url = "postgresql://user:secret@localhost:5432/db"
+            >>> url = "postgresql://user:YOUR_PASSWORD_HERE@localhost:5432/db"
             >>> DatabaseManager._mask_password(url)
             'postgresql://user:***@localhost:5432/db'
         """

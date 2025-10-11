@@ -165,7 +165,7 @@ services:
     environment:
       POSTGRES_DB: food_orders
       POSTGRES_USER: kafka_user
-      POSTGRES_PASSWORD: kafka_password_local
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kafka_password_local}  # From .env or default for local dev
     volumes:
       # Mount initialization script (will create tables on first startup)
       - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -316,7 +316,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: food_orders
       POSTGRES_USER: kafka_user
-      POSTGRES_PASSWORD: kafka_password_local
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kafka_password_local}  # From .env or default for local dev
       DB_POOL_SIZE: 5                       # SQLAlchemy connection pool size
 
       # === PROCESSING SETTINGS ===

@@ -68,7 +68,13 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ --cov=src --cov-report=xml --cov-report=term
+          if [ -d "tests" ]; then
+            pytest tests/ --cov=src --cov-report=xml --cov-report=term
+          else
+            echo "⚠️ tests/ directory not found - skipping tests (will be added in Phase 4.0)"
+            echo "Creating empty coverage.xml for SonarCloud"
+            echo '<?xml version="1.0" ?><coverage version="1.0"></coverage>' > coverage.xml
+          fi
         continue-on-error: true  # Allow SonarCloud to run even if tests fail
 
       - name: SonarCloud Scan

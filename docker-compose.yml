@@ -294,7 +294,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.consumer
-    container_name: kafka-order-consumer
+    # container_name: kafka-order-consumer  # Commented out to enable horizontal scaling
     depends_on:
       kafka:
         condition: service_healthy

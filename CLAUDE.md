@@ -11,7 +11,7 @@ Educational Kafka pipeline demonstrating Apache Kafka fundamentals through a rea
 ## Current Status
 
 **Phase:** 4.0 Complete (Testing Infrastructure) ✅
-**Current Branch:** `feature/testing-infrastructure`
+**Current Branch:** `main`
 **Completion:** Phase 1.0 (Infrastructure) ✅ | Phase 2.0 (Producer) ✅ | Phase 3.0 (Consumer) ✅ | Phase 4.0 (Tests) ✅
 
 ### What's Working
@@ -460,15 +460,27 @@ Key configuration in `.env.example`:
 - `LOG_LEVEL`: INFO/DEBUG
 - `LOG_FORMAT`: json/text
 
-## Known Issues
+## Known Issues & Technical Debt
 
 ### Resolved
 - ✅ Docker dependency installation (multi-stage build fixed)
 - ✅ Kafka config validation (buffer.memory not supported in Python client)
 - ✅ Idempotence config (acks='all' required)
 
-### Current
-- None - All Phase 2.0 functionality working as expected
+### Open Issues (from PR #7 & #8 Code Reviews)
+
+**Critical:**
+- 🔴 [Issue #9](https://github.com/adamkwhite/KafkaFoodPipeline/issues/9): Fix UUID generation in consumer config breaking offset management
+
+**Testing Improvements:**
+- 🟡 [Issue #10](https://github.com/adamkwhite/KafkaFoodPipeline/issues/10): Use pytest monkeypatch for environment variable isolation
+- 🟡 [Issue #11](https://github.com/adamkwhite/KafkaFoodPipeline/issues/11): Add negative test cases for error conditions and invalid inputs
+- 🟡 [Issue #13](https://github.com/adamkwhite/KafkaFoodPipeline/issues/13): Add integration test for unique client ID generation
+- ⚪ [Issue #12](https://github.com/adamkwhite/KafkaFoodPipeline/issues/12): Fix test timeouts and add type hints to fixtures
+
+**Documentation:**
+- ⚪ [Issue #14](https://github.com/adamkwhite/KafkaFoodPipeline/issues/14): Clarify offset storage in horizontal scaling documentation
+- ⚪ [Issue #15](https://github.com/adamkwhite/KafkaFoodPipeline/issues/15): Add explanation for uneven partition distribution in documentation
 
 ## Performance Metrics
 
@@ -521,26 +533,30 @@ Every file includes "WHY" explanations, not just "HOW" implementations.
 
 ---
 
-**Last Updated**: 2025-10-10
+**Last Updated**: 2025-10-11
 **Session Summary**:
-- ✅ Completed Phase 4.0 (Testing Infrastructure)
-  - **Unit Tests** (80+ tests, 1,488 lines):
-    - test_mock_data.py: 30+ tests for MockDataGenerator
-    - test_config.py: 30+ tests for Pydantic config validation
-    - test_models.py: 20+ tests for SQLAlchemy ORM models
-  - **Integration Tests** (42+ tests, 1,647 lines):
-    - test_producer_integration.py: 15+ tests with real Kafka
-    - test_consumer_integration.py: 17+ tests with Kafka + PostgreSQL
-    - test_pipeline_e2e.py: 10+ end-to-end pipeline tests
-  - **Test Infrastructure**:
-    - conftest.py with session/function-scoped fixtures
-    - Testcontainers for real Kafka and PostgreSQL
-    - pytest with 80% coverage requirement
-    - Pre-commit hooks (Black, isort, Flake8, Mypy, Bandit)
-    - Coverage reports (terminal, HTML, XML for SonarCloud)
-- Test Statistics:
-  - 122+ total tests across unit and integration suites
+- ✅ **Merged PR #7** (Phase 4.0: Testing Infrastructure)
+  - 122+ tests (80+ unit, 42+ integration)
   - 3,100+ lines of test code
-  - Coverage targets: 80% minimum enforced
-  - Performance benchmarks: 100+ msg/s throughput
-- Ready for Phase 5.0 (Documentation & Deployment)
+  - 80% coverage requirement enforced
+  - All CI/CD checks passed
+
+- ✅ **Merged PR #8** (Phase 3.0 Enhancement: Horizontal Scaling Documentation)
+  - 13KB documentation (620 lines)
+  - Complete horizontal scaling guide
+  - Architecture diagrams and troubleshooting
+  - docker-compose.yml updated for multi-consumer mode
+
+- ✅ **Created 7 GitHub Issues** from PR code review feedback:
+  - 1 Critical (UUID generation bug)
+  - 4 Medium (testing improvements)
+  - 2 Low (documentation clarifications)
+  - All issues labeled and cross-referenced
+
+- 📊 **Current State**:
+  - Both PRs merged to main
+  - All SonarCloud checks passing
+  - Clean working directory on main branch
+  - 7 open issues for Phase 4.5/5.0 work
+
+- 🎯 **Ready for**: Phase 5.0 (Documentation & Deployment) or addressing critical Issue #9

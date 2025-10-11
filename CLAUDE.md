@@ -10,32 +10,43 @@ Educational Kafka pipeline demonstrating Apache Kafka fundamentals through a rea
 
 ## Current Status
 
-**Phase:** 2.0 Complete (Order Producer Service) ✅
-**Current Branch:** `feature/order-producer-service`
-**Completion:** Phase 1.0 (Infrastructure) ✅ | Phase 2.0 (Producer) ✅ | Phase 3.0 (Consumer) - Next
+**Phase:** 3.0 Complete (Order Consumer Service) ✅
+**Current Branch:** `feature/order-consumer-service`
+**Completion:** Phase 1.0 (Infrastructure) ✅ | Phase 2.0 (Producer) ✅ | Phase 3.0 (Consumer) ✅
 
 ### What's Working
 - ✅ **Infrastructure**: Kafka (3 partitions), Zookeeper, PostgreSQL all running in Docker
-- ✅ **Producer Service**: Publishing 10 orders/sec to Kafka with 4,029+ messages delivered
+- ✅ **Producer Service**: Publishing 10 orders/sec to Kafka with 6,000+ messages delivered
+- ✅ **Consumer Service**: Processing messages from Kafka and persisting to PostgreSQL
+- ✅ **End-to-End Pipeline**: Producer → Kafka → Consumer → Database (fully operational)
 - ✅ **Mock Data**: 100 customers, 20 menu items, realistic order generation
 - ✅ **Partitioning**: customer_id as partition key ensuring per-customer ordering
+- ✅ **Idempotency**: Duplicate detection via order_id PRIMARY KEY (0 duplicates verified)
 - ✅ **Monitoring**: Structured JSON logs with correlation IDs (order_id)
 
 ### Recent Accomplishments (Today's Session)
-1. **Complete Producer Implementation** (Tasks 2.1-2.16):
-   - MockDataGenerator with Faker (reproducible seed=42)
-   - OrderProducer with confluent-kafka-python
-   - ProducerConfig with Pydantic validation
-   - CLI entry point with argparse and signal handling
-   - Dockerfile with multi-stage build (208MB image)
+1. **Complete Consumer Implementation** (Phase 3.0):
+   - OrderConsumer with confluent-kafka-python (manual offset commits)
+   - ConsumerConfig with Pydantic validation (Kafka + PostgreSQL settings)
+   - DatabaseManager with SQLAlchemy connection pooling
+   - Order ORM model with customer fields and helper methods
+   - JSON deserialization and message validation
+   - Idempotency via order_id PRIMARY KEY
+   - Process-then-commit pattern for at-least-once delivery
+   - Retry logic with exponential backoff
+   - CLI entry point with graceful shutdown (SIGTERM/SIGINT)
+   - Dockerfile with multi-stage build
    - Docker Compose integration
 
-2. **Production Testing**:
-   - Built and deployed producer container
-   - Fixed configuration issues (acks='all' required for idempotence)
-   - Verified 4,029+ messages successfully delivered
-   - Confirmed partition distribution across 3 partitions
-   - Validated JSON message structure in Kafka
+2. **End-to-End Pipeline Testing**:
+   - Built and deployed consumer container
+   - Fixed SQLAlchemy session detachment issues
+   - Fixed Dockerfile dependency installation
+   - Verified 6,000+ orders successfully processed
+   - Confirmed 100 unique customers (matches mock data)
+   - Validated idempotency (0 duplicates found)
+   - Average order value: $33.08
+   - Database schema updated with customer_name and customer_email fields
 
 ## Technology Stack
 
@@ -299,8 +310,13 @@ KafkaFoodPipeline/
 │   │   ├── producer.py     # OrderProducer class, callbacks
 │   │   ├── config.py       # ProducerConfig with Pydantic
 │   │   └── mock_data.py    # MockDataGenerator (Faker-based)
-│   ├── consumer/           # Order Consumer Service (Phase 3.0 - Next)
-│   │   └── models.py       # SQLAlchemy ORM models
+│   ├── consumer/           # Order Consumer Service (Phase 3.0 ✅)
+│   │   ├── __init__.py     # Package exports, consumer documentation
+│   │   ├── main.py         # CLI entry point, graceful shutdown
+│   │   ├── consumer.py     # OrderConsumer class, offset management
+│   │   ├── config.py       # ConsumerConfig with Pydantic
+│   │   ├── database.py     # DatabaseManager with connection pooling
+│   │   └── models.py       # SQLAlchemy ORM models (Order)
 │   ├── database/           # Database setup (Phase 1.0 ✅)
 │   │   ├── init.sql        # Schema with indexes
 │   │   └── migrations/     # Migration scripts
@@ -342,31 +358,34 @@ KafkaFoodPipeline/
 5. **Error Handling**: Retry transient errors, log permanent failures
 6. **Graceful Shutdown**: Flush pending messages before exit
 
+### Consumer Best Practices
+1. **Manual Offset Commits**: Commit after successful processing (at-least-once delivery)
+2. **Idempotency**: Use natural keys (order_id PRIMARY KEY) to handle duplicates
+3. **Process-Then-Commit**: Save to database BEFORE committing offset
+4. **Retry Logic**: Exponential backoff for transient errors (DB connection issues)
+5. **Session Management**: Detach ORM objects before accessing outside session context
+6. **Graceful Shutdown**: Close consumer, commit final offsets, close DB connections
+7. **Consumer Groups**: Use groups for horizontal scaling (partition assignment)
+
 ### Docker Optimization
 - **Multi-stage builds**: Separate build deps from runtime (208MB vs 900MB)
 - **Non-root user**: Security best practice (producer:1000)
 - **Layer caching**: Requirements before code for faster rebuilds
 - **Health checks**: Enable auto-restart on failure
 
-## Next Steps
+## Completed Phases
 
-### Phase 3.0: Order Consumer Service (17 tasks)
-1. Create consumer directory structure
-2. Implement KafkaConsumer class
-   - Subscribe to 'food-orders' topic
-   - Consumer group: 'order-processors'
-   - Manual offset commits (at-least-once)
-3. Database integration
-   - SQLAlchemy session management
-   - Connection pooling
-   - Transaction handling
-4. Idempotency handling
-   - order_id as primary key (natural deduplication)
-   - Handle duplicate message processing
-5. Error handling & dead letter queue
-6. Consumer configuration (Pydantic)
-7. Main entry point with CLI
-8. Dockerfile and Docker Compose integration
+### Phase 3.0: Order Consumer Service ✅
+- OrderConsumer implementation with manual offset commits
+- SQLAlchemy ORM models and database connection pooling
+- Idempotency via order_id PRIMARY KEY (0 duplicates)
+- Process-then-commit pattern for at-least-once delivery
+- Retry logic with exponential backoff for transient errors
+- CLI with graceful shutdown (SIGTERM/SIGINT handling)
+- Docker multi-stage build and Compose integration
+- **End-to-end testing**: 6,000+ orders processed successfully
+
+## Next Steps
 
 ### Phase 4.0: Testing Infrastructure (16 tasks)
 - Unit tests with pytest
@@ -478,11 +497,19 @@ Every file includes "WHY" explanations, not just "HOW" implementations.
 
 **Last Updated**: 2025-10-10
 **Session Summary**:
-- Completed Phase 2.0 (Producer Service)
-- Added comprehensive code quality gates:
-  - Local pre-commit hooks (Black, isort, Flake8, Mypy, Bandit)
-  - GitHub Actions CI/CD (build, lint, test, SonarCloud)
-  - Claude Code integration for AI-powered code review
-  - Centralized tool configuration in pyproject.toml
-- All code formatted and passing quality checks
-- Ready for Phase 3.0 (Consumer Service)
+- ✅ Completed Phase 3.0 (Consumer Service)
+  - OrderConsumer with Kafka subscription and manual offset commits
+  - DatabaseManager with SQLAlchemy connection pooling
+  - Order ORM model with customer fields
+  - Process-then-commit pattern for at-least-once delivery
+  - Idempotency via PRIMARY KEY (0 duplicates in 6,000+ orders)
+  - Retry logic with exponential backoff
+  - Docker multi-stage build (consumer image)
+  - Full end-to-end pipeline working: Producer → Kafka → Consumer → PostgreSQL
+- Pipeline Statistics:
+  - 6,000+ orders processed successfully
+  - 100 unique customers (matches mock data)
+  - $33.08 average order value
+  - 0 duplicates (idempotency verified)
+  - 3 Kafka partitions with balanced distribution
+- Ready for Phase 4.0 (Testing Infrastructure)

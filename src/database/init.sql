@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS orders (
     -- All orders from same customer go to same partition (maintains ordering)
     customer_id VARCHAR(50) NOT NULL,
 
+    -- Customer display name (from Kafka message)
+    customer_name VARCHAR(100) NOT NULL,
+
+    -- Customer email address (from Kafka message)
+    customer_email VARCHAR(100) NOT NULL,
+
     -- Order items stored as JSONB array
     -- Example: [{"name": "Burger", "quantity": 2, "price": 8.99}, ...]
     -- JSONB allows indexing and querying (GIN index below)
@@ -117,6 +123,12 @@ COMMENT ON COLUMN orders.order_id IS
 
 COMMENT ON COLUMN orders.customer_id IS
 'Customer identifier. Used as Kafka partition key to maintain ordering per customer.';
+
+COMMENT ON COLUMN orders.customer_name IS
+'Customer display name from Kafka message. Used for reporting and display purposes.';
+
+COMMENT ON COLUMN orders.customer_email IS
+'Customer email address from Kafka message. Used for notifications and customer queries.';
 
 COMMENT ON COLUMN orders.items IS
 'Order items as JSONB array. Example: [{"name": "Burger", "quantity": 2, "price": 8.99}]';

@@ -28,7 +28,7 @@ LEARNING OBJECTIVES:
 """
 
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from faker import Faker
@@ -368,7 +368,7 @@ class MockDataGenerator:
         total_amount = round(total_amount, 2)
 
         # Generate timestamp (ISO 8601 format for consistency)
-        created_at = datetime.utcnow().isoformat() + "Z"
+        created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         # Build complete order
         order = {

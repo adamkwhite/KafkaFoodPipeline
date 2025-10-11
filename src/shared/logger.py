@@ -32,7 +32,7 @@ EXAMPLE OUTPUT:
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 # ==============================================================================
@@ -144,7 +144,7 @@ class JSONFormatter(logging.Formatter):
         Returns:
             ISO 8601 formatted timestamp (e.g., "2025-01-10T14:30:00.123Z")
         """
-        dt = datetime.utcfromtimestamp(created)
+        dt = datetime.fromtimestamp(created, tz=timezone.utc)
         return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 

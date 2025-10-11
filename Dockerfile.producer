@@ -1,0 +1,163 @@
+# ==============================================================================
+# Kafka Order Producer - Dockerfile
+# ==============================================================================
+#
+# This Dockerfile creates a containerized version of the order producer service.
+#
+# MULTI-STAGE BUILD:
+# - Stage 1: Build dependencies
+# - Stage 2: Runtime image (smaller, production-ready)
+#
+# USAGE:
+#   docker build -f Dockerfile.producer -t order-producer:latest .
+#   docker run --network kafka-network order-producer:latest
+#
+# DOCKER COMPOSE:
+#   services:
+#     order-producer:
+#       build:
+#         context: .
+#         dockerfile: Dockerfile.producer
+#
+
+# ==============================================================================
+# STAGE 1: BUILDER
+# ==============================================================================
+# Install dependencies and prepare application
+
+FROM python:3.11-slim as builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+# - gcc: Required for compiling some Python packages (confluent-kafka C bindings)
+# - python3-dev: Python header files for C extensions
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements files
+COPY requirements.txt requirements-dev.txt ./
+
+# Install Python dependencies to /usr/local
+# - --no-cache-dir: Don't cache packages (smaller image)
+# Installing to system paths makes them accessible to any user
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ==============================================================================
+# STAGE 2: RUNTIME
+# ==============================================================================
+# Create minimal runtime image
+
+FROM python:3.11-slim
+
+# Metadata labels (good practice for container registries)
+LABEL maintainer="Kafka Food Pipeline"
+LABEL description="Order Producer Service - Generates food orders and publishes to Kafka"
+LABEL version="1.0.0"
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python dependencies from builder stage
+# Packages installed to /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+
+# Copy application source code
+COPY src/ src/
+COPY .env.example .env.example
+
+# Make sure Python can find our modules
+ENV PYTHONPATH=/app
+
+# Python optimizations
+# - PYTHONUNBUFFERED: Force stdout/stderr to be unbuffered (better for Docker logs)
+# - PYTHONDONTWRITEBYTECODE: Don't create .pyc files (smaller image)
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Default environment variables (can be overridden in docker-compose or docker run)
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+ENV KAFKA_TOPIC_ORDERS=food-orders
+ENV PRODUCER_CLIENT_ID=order-producer-docker
+ENV PRODUCER_RATE=10
+ENV PRODUCER_DURATION=0
+ENV LOG_LEVEL=INFO
+ENV LOG_FORMAT=json
+ENV MOCK_SEED=42
+
+# Create non-root user for security
+# Running as root in containers is a security risk
+RUN useradd -m -u 1000 producer && \
+    chown -R producer:producer /app
+
+# Switch to non-root user
+USER producer
+
+# Health check (optional, useful for orchestration)
+# Checks if producer process is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD pgrep -f "src.producer.main" || exit 1
+
+# Default command: Run producer service
+# Can be overridden in docker-compose or docker run
+CMD ["python", "-m", "src.producer.main"]
+
+# ==============================================================================
+# BUILD AND RUN EXAMPLES
+# ==============================================================================
+#
+# Build image:
+#   docker build -f Dockerfile.producer -t order-producer:latest .
+#
+# Run standalone:
+#   docker run --rm \
+#     --network kafka-network \
+#     -e KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
+#     -e PRODUCER_RATE=20 \
+#     order-producer:latest
+#
+# Run with custom command:
+#   docker run --rm order-producer:latest \
+#     python -m src.producer.main --rate 50 --duration 60
+#
+# Run interactive (for debugging):
+#   docker run --rm -it order-producer:latest /bin/bash
+#
+# Override entry point:
+#   docker run --rm order-producer:latest \
+#     python -c "from src.producer import MockDataGenerator; print(MockDataGenerator().generate_order())"
+#
+# ==============================================================================
+# SECURITY BEST PRACTICES
+# ==============================================================================
+#
+# ✅ Multi-stage build (smaller attack surface)
+# ✅ Non-root user (principle of least privilege)
+# ✅ No secrets in image (use environment variables or secrets management)
+# ✅ Minimal base image (python:3.11-slim vs python:3.11-full)
+# ✅ Clean apt cache (smaller image size)
+# ✅ Health check (container orchestration aware of service health)
+#
+# ==============================================================================
+# OPTIMIZATION NOTES
+# ==============================================================================
+#
+# IMAGE SIZE:
+# - Multi-stage build: ~200MB (vs ~900MB single stage)
+# - slim base image: -500MB vs full Python image
+# - No cache/build tools: -100MB
+#
+# BUILD TIME:
+# - Layer caching: Only rebuild changed layers
+# - Copy requirements first: Dependency layer cached if no changes
+# - Copy code last: Code changes don't invalidate dependency cache
+#
+# RUNTIME PERFORMANCE:
+# - PYTHONUNBUFFERED=1: Immediate log output (no buffering)
+# - Non-root user: Minimal performance impact, significant security gain
+# - Health check: Negligible overhead, enables auto-restart
+#
+# ==============================================================================

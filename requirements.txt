@@ -24,8 +24,19 @@ psycopg2-binary>=2.9.0
 # - Ensures data quality and catches errors early
 pydantic>=2.0.0
 
+# pydantic-settings: Settings management for Pydantic v2
+# - Load configuration from environment variables
+# - Validates settings with type checking
+pydantic-settings>=2.0.0
+
 # === CONFIGURATION ===
 # python-dotenv: Load environment variables from .env file
 # - Keeps secrets out of code
 # - Different configs for local/dev/production
 python-dotenv>=1.0.0
+
+# === MOCK DATA GENERATION ===
+# Faker: Generate realistic fake data for testing
+# - Creates customer names, emails, phone numbers
+# - Reproducible with seed for consistent test data
+Faker>=22.0.0

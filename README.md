@@ -28,28 +28,23 @@ An educational project demonstrating Apache Kafka fundamentals, stream processin
                                                         └─────────────────┘
 ```
 
+## Technology Stack
 
-### Key Insights
+**Core Technologies:**
+- Python 3.11+ (backend services)
+- Apache Kafka (message streaming, 3 partitions)
+- PostgreSQL 15+ (persistent storage)
+- Docker & Docker Compose (containerization)
 
-#### ✅ Strong Alignment (Kafka Learning Applicable to Production)
-1. **Python + PostgreSQL + Kafka** - Core stack matches perfectly
-2. **Food domain** - Both deal with food data (orders vs. nutrition/health)
-3. **Streaming architecture** - Production migrating to Kafka for orchestration, PRD focuses on Kafka patterns
-4. **Monitoring gaps** - Both acknowledge observability challenges
+**Key Libraries:**
+- `confluent-kafka-python` - Production-grade Kafka client
+- `SQLAlchemy` - ORM with type hints
+- `Pydantic` - Data validation and settings
+- `pytest` + `testcontainers` - Testing (80% coverage target)
 
-#### ⚠️ Strategic Divergences
-1. **Scale**: PRD is learning-focused (10 ops/sec) vs. production (millions of users)
-2. **Infrastructure**: PRD uses raw Docker/AWS vs. managed PaaS
-3. **Data sources**: PRD uses mocks vs. production has real integrations
-4. **Compliance**: PRD has none, production requires HIPAA/PHIPA
-
-#### 🎯 Learning Opportunity Alignment
-This Kafka pipeline project directly teaches concepts relevant to production migration:
-- **Kafka fundamentals** → Applies to agent/model orchestration
-- **Producer/consumer patterns** → Relevant for Gen AI features (patient/clinic memory)
-- **Partitioning strategy** → Scalable message distribution for millions of users
-- **Error handling & retries** → Critical for medical-grade reliability
-- **Monitoring approach** → Addresses acknowledged production gap
+**Infrastructure:**
+- Local: Docker Compose
+- Cloud: AWS EC2 (t2.small) with future Kubernetes support
 
 ## Quick Start
 

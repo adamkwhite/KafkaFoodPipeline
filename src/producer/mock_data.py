@@ -235,8 +235,13 @@ class MockDataGenerator:
         - customer_id is used as partition key
         - Same customer → same partition → ordering guaranteed
         - Different customers → different partitions → parallel processing
+
+        SECURITY NOTE:
+        - Using Python's random module (PRNG) is safe for this educational/demo application
+        - This is NOT cryptographic random - only used for mock data generation
+        - For production security-sensitive operations, use secrets.SystemRandom() instead
         """
-        return random.choice(self.customers)
+        return random.choice(self.customers)  # nosec B311 - Safe for demo mock data
 
     def get_random_menu_items(self, min_items: int = 1, max_items: int = 5) -> List[Dict[str, Any]]:
         """
@@ -262,17 +267,24 @@ class MockDataGenerator:
                 'price': 8.99,
                 'subtotal': 17.98
             }
+
+        SECURITY NOTE:
+        - Using Python's random module (PRNG) is safe for this educational/demo application
+        - This is NOT cryptographic random - only used for mock data generation
+        - For production security-sensitive operations, use secrets.SystemRandom() instead
         """
         # Random number of items in order
-        num_items = random.randint(min_items, max_items)
+        num_items = random.randint(min_items, max_items)  # nosec B311 - Safe for demo mock data
 
         # Randomly select items (without replacement to avoid duplicates)
-        selected_items = random.sample(self.menu_items, num_items)
+        selected_items = random.sample(  # nosec B311 - Safe for demo mock data
+            self.menu_items, num_items
+        )
 
         # Add quantity and calculate subtotal
         order_items = []
         for item in selected_items:
-            quantity = random.randint(1, 3)  # 1-3 of each item
+            quantity = random.randint(1, 3)  # nosec B311 - Safe for demo mock data
             subtotal = round(item["price"] * quantity, 2)
 
             order_items.append(

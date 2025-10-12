@@ -28,33 +28,6 @@ An educational project demonstrating Apache Kafka fundamentals, stream processin
                                                         └─────────────────┘
 ```
 
-## Technology Stack Comparison
-
-This learning project's tech stack is intentionally aligned with a production medical application to maximize real-world applicability.
-
-| **Component** | **Kafka Food Pipeline PRD** | **Production Medical App** | **Status** |
-|---------------|----------------------------|---------------------------|------------|
-| **Backend Language** | Python 3.11+ | Python | ✅ **MATCH** |
-| **Database** | PostgreSQL 15+ | PostgreSQL | ✅ **MATCH** |
-| **Message Streaming** | Kafka (core focus, 3 partitions) | Kafka (in migration, agent/model orchestration) | ✅ **MATCH** |
-| **Kafka Client** | confluent-kafka-python | Not specified | ➕ **PRD SPECIFIC** |
-| **ORM** | SQLAlchemy | Not specified | ➕ **PRD SPECIFIC** |
-| **Data Validation** | Pydantic | Not specified | ➕ **PRD SPECIFIC** |
-| **Containerization** | Docker & Docker Compose | Not specified (likely in PaaS) | ⚠️ **DIVERGENT** |
-| **Infrastructure** | AWS EC2 (t2.small), future K8s | Medical-grade PaaS (HIPAA/PHIPA compliant) | ⚠️ **DIVERGENT** |
-| **Testing** | pytest, testcontainers (80% coverage) | Not specified | ➕ **PRD SPECIFIC** |
-| **Frontend** | None (CLI/logs only) | React (web), React Native (mobile) | ➖ **PRODUCTION ONLY** |
-| **AI/ML** | None | CNN for food image recognition, CV models | ➖ **PRODUCTION ONLY** |
-| **MLOps** | None | Model deployment, offline testing, validation | ➖ **PRODUCTION ONLY** |
-| **Data Integration** | Mock data generator (100 customers, 20 items) | DexCom CGM, photo/voice/text/barcode | ⚠️ **DIVERGENT** |
-| **Monitoring** | Structured logging only (no Prometheus/Grafana) | Gap acknowledged ("a little bit blind"), being addressed | ⚠️ **BOTH LACKING** |
-| **Compliance** | None | HIPAA/PHIPA required | ➖ **PRODUCTION ONLY** |
-| **Scale** | Demo app (10 ops/sec), single instance | Hundreds of thousands → millions of users | ⚠️ **DIVERGENT** |
-| **Use Case** | Order processing simulation (food orders) | Patient health data, food logging, CGM integration | ⚠️ **DIVERGENT** |
-| **Team Size** | 1 (learning project) | 5-6 engineers | ⚠️ **DIVERGENT** |
-| **Deployment Pattern** | Local Docker Compose + AWS EC2 + future K8s | Medical PaaS (infrastructure abstracted) | ⚠️ **DIVERGENT** |
-| **Notifications** | Logging only (no email/SMS) | Not specified | ➕ **PRD SPECIFIC** |
-| **Analytics** | Out of scope (Phase 2) | Longitudinal analysis, reporting | ➖ **PRODUCTION ONLY** |
 
 ### Key Insights
 
@@ -67,7 +40,7 @@ This learning project's tech stack is intentionally aligned with a production me
 #### ⚠️ Strategic Divergences
 1. **Scale**: PRD is learning-focused (10 ops/sec) vs. production (millions of users)
 2. **Infrastructure**: PRD uses raw Docker/AWS vs. managed PaaS
-3. **Data sources**: PRD uses mocks vs. production has real integrations (CGM, images)
+3. **Data sources**: PRD uses mocks vs. production has real integrations
 4. **Compliance**: PRD has none, production requires HIPAA/PHIPA
 
 #### 🎯 Learning Opportunity Alignment

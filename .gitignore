@@ -214,3 +214,4 @@ docs/_templates/
 # ✅ README.md (project documentation)
 # ✅ .gitignore (this file!)
 .claude/commands/
+.claude/settings.local.json

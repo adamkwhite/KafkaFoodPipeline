@@ -1,5 +1,12 @@
 # Kafka Food Processing Pipeline - Learning Project
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=bugs)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=coverage)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=adamkwhite_KafkaFoodPipeline&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=adamkwhite_KafkaFoodPipeline)
+
 ## Overview
 
 An educational project demonstrating Apache Kafka fundamentals, stream processing patterns, and microservices architecture through a food order processing simulation. This project simulates how modern food delivery platforms handle high-volume order processing using event streaming.

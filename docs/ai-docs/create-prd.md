@@ -7,10 +7,18 @@ To guide an AI assistant in creating a detailed Product Requirements Document (P
 ## Process
 
 1. **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality. It could be a few lines, or a github issue.
-2. ** Get a perspective on the project by reading details from Readme.md, Claude.md, docs/, the last 5 PRs in github, and any logged github issues 
-3. ** Ask Clarifying Questions:** Before writing the PRD, the AI *must* ask clarifying questions to gather sufficient detail. The goal is to understand the "what" and "why" of the feature, not necessarily the "how" (which the developer will figure out).
-4. ** Generate PRD:** Based on the initial prompt and the user's answers to the clarifying questions, generate a PRD using the structure outlined below.
-5. ** Save PRD:** Create a new feature directory `docs/features/[feature-name]-PLANNED/` and save the generated document as `prd.md` inside that directory.
+2. **Get a perspective on the project** by reading details from README.md, CLAUDE.md, docs/, the last 5 PRs in github, and any logged github issues.
+3. **Check for Related Work:** Scan `docs/features/` for existing PRDs and `docs/adr/` for existing ADRs that might overlap, duplicate, or extend the new request. If any are found, list them and confirm with the user whether this is a new feature, an extension, or a supersession before proceeding.
+4. **Ask Clarifying Questions:** Before writing the PRD, the AI *must* ask clarifying questions to gather sufficient detail. The goal is to understand the "what" and "why" of the feature, not necessarily the "how" (which the developer will figure out).
+5. **Generate PRD:** Based on the initial prompt and the user's answers to the clarifying questions, generate a PRD using the structure outlined below.
+6. **Save PRD:** Create a new feature directory `docs/features/[feature-name]-PLANNED/` and save the generated document as `prd.md` inside that directory.
+7. **Commit PRD on a feature branch:** If not already on a feature branch, create one: `git checkout -b feature/[feature-name]`. Never commit the PRD to `main`. Stage, commit, and push with `-u` to establish remote tracking.
+8. **Create a single tracking issue:** Use `gh issue create` to open **one** tracking issue for the feature. Do NOT create multiple issues per PRD — a single tracking issue keeps traceability simple and matches the one-logical-change-per-PR workflow.
+   - **Title:** the PRD title
+   - **Body:** a one-paragraph summary, the repo-relative path to the PRD (`docs/features/[feature-name]-PLANNED/prd.md`), and the feature branch name
+   - **Labels:** `feature` (or the repo's existing feature-tracking label)
+9. **Link the issue back into the PRD:** Update the PRD's **Related Work** section with the issue URL and commit the update. Two commits on the feature branch is fine — the first establishes the PRD, the second closes the cross-reference loop.
+10. **Flag architectural decisions for ADRs:** If the PRD process surfaced a significant architectural or design decision (choosing approach A over B, adopting a new dependency, picking a data store, etc.), ask the user whether to also create an ADR using `create-adr.md`. ADRs ride along in the same feature branch as the PRD.
 
 ## Status Management
 - **PLANNED**: Feature is documented but not yet started
@@ -49,6 +57,7 @@ The generated PRD should include the following sections:
 7.  **Technical Considerations (Optional):** Mention any known technical constraints, dependencies, or suggestions (e.g., "Should integrate with the existing Auth module").
 8.  **Success Metrics:** How will the success of this feature be measured? (e.g., "Increase user engagement by 10%", "Reduce support tickets related to X").
 9.  **Open Questions:** List any remaining questions or areas needing further clarification.
+10. **Related Work:** Links to the tracking GitHub issue, related PRDs in `docs/features/`, and related ADRs in `docs/adr/`. Start as a placeholder during drafting; fill in after the tracking issue is created.
 
 ### Option 2: Comprehensive Engineering PRD Structure
 
@@ -69,6 +78,7 @@ For complex technical features or when requested by the user, use this more deta
 10. **Risks and Mitigation:** Risk/mitigation strategy pairs
 11. **Out of Scope:** Clear exclusions and boundaries
 12. **Acceptance Criteria:** Grouped validation criteria
+13. **Related Work:** Links to the tracking GitHub issue, related PRDs in `docs/features/`, and related ADRs in `docs/adr/`. Start as a placeholder during drafting; fill in after the tracking issue is created.
 
 ### When to Use Each Structure
 
@@ -85,8 +95,85 @@ Assume the primary reader of the PRD is a **junior developer**. Therefore, requi
 *   **Location:** `docs/features/[feature-name]-PLANNED/`
 *   **Filename:** `[feature-name]-prd.md`
 
+## Clarification Questions Output Format
+
+After gathering context and before asking clarifying questions, output all questions to the terminal in this structured format:
+
+```
+=== PRD CLARIFICATION QUESTIONS ===
+
+Question 1: [Question text]
+     1.1: [Option 1]
+     1.2: [Option 2]
+     1.3: [Option 3]
+     ...
+     1.N: [Option N]
+     1.X: Something else
+
+Question 2: [Question text]
+     2.1: [Option 1]
+     2.2: [Option 2]
+     2.3: [Option 3]
+     ...
+     2.N: [Option N]
+     2.X: Something else
+
+...
+
+Question N: [Question text]
+     N.1: [Option 1]
+     N.2: [Option 2]
+     N.3: [Option 3]
+     ...
+     N.N: [Option N]
+     N.X: Something else
+
+===================================
+```
+
+**Guidelines:**
+- Each question should have 2-5 specific options plus the "X: Something else" option
+- Options should be actionable and specific to the feature context
+- The "X: Something else" option always allows for custom input
+- Number questions sequentially (1, 2, 3, ...)
+- Number options within each question (1.1, 1.2, etc.)
+- Use this format before engaging in the conversational Q&A with the user
+
+**Example:**
+
+```
+=== PRD CLARIFICATION QUESTIONS ===
+
+Question 1: What is the primary goal of this user authentication feature?
+     1.1: Allow new users to create accounts
+     1.2: Enable existing users to log in securely
+     1.3: Support social login (Google, GitHub, etc.)
+     1.4: Implement password reset functionality
+     1.X: Something else
+
+Question 2: Which authentication method should be prioritized?
+     2.1: Email and password
+     2.2: OAuth (social login)
+     2.3: Magic link (passwordless)
+     2.4: Multi-factor authentication (MFA)
+     2.X: Something else
+
+Question 3: What platforms need to support this feature?
+     3.1: Web only (desktop)
+     3.2: Web (desktop + mobile responsive)
+     3.3: Native mobile apps (iOS/Android)
+     3.4: All platforms
+     3.X: Something else
+
+===================================
+```
+
 ## Final instructions
 1. Do NOT start implementing the PRD
-2. Make sure to ask the user clarifying questions
-3. Take the user's answers to the clarifying questions and improve the PRD
-4. Ask the user if they want to break the prd down into dev tasks using generate-tasks.mdc (Reply "yes" or "y" to continue)
+2. Output clarifying questions using the structured format above
+3. Make sure to ask the user clarifying questions
+4. Take the user's answers to the clarifying questions and improve the PRD
+5. Commit the PRD on a feature branch (never `main`) and push with `-u`
+6. Create a single GitHub tracking issue with `gh issue create` and link it in the PRD's Related Work section
+7. If the PRD involved a significant architectural decision, prompt the user to create an ADR using `create-adr.md`
+8. Ask the user if they want to break the PRD down into dev tasks using `generate-tasks.md` (Reply "yes" or "y" to continue)

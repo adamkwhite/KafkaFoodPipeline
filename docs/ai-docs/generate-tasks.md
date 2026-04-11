@@ -66,10 +66,14 @@ The generated task list _must_ follow this structure:
 ```
 
 ## Interaction Model
-The process explicitly requires a pause after generating parent tasks to get user confirmation ("Go") before proceeding to generate the detailed sub-tasks. 
+The process explicitly requires a pause after generating parent tasks to get user confirmation ("Go") before proceeding to generate the detailed sub-tasks.
 This ensures the high-level plan aligns with user expectations before diving into details.
-Offer to process the task list using process-task-list.mdc
+Offer to process the task list using `process-task-list.md`
 (Reply "yes" or "y" to continue)
+
+## Flagging Architectural Decisions
+
+While generating tasks, watch for sub-tasks that imply a significant architectural or design choice that is not obvious from the PRD (e.g., "choose between Redis and in-memory caching", "decide on ORM", "pick a diffing strategy"). If a task implies such a decision, note it inline in the task list with `(ADR needed)` and remind the user at the end of generation that an ADR should be created using `create-adr.md` before or during that sub-task's execution.
 
 ## Target Audience
 Assume the primary reader of the task list is a **junior developer** who will implement the feature.

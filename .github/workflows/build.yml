@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore: ['*.md', 'docs/**', 'LICENSE', '.gitignore', '.github/**']
   pull_request:
     branches:
       - main
+    paths-ignore: ['*.md', 'docs/**', 'LICENSE', '.gitignore', '.github/**']
 
 permissions:
   contents: write
